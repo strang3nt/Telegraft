@@ -1,0 +1,33 @@
+@startuml database
+entity User {
+  *id: number <<generated>>
+  --
+  *username: text
+  *password: text
+}
+
+entity Message {
+  *id: number <<generated>>
+  --
+  *user_id: number <<FK>>
+  *chat_id: number <<FK>>
+  *msg_content: text
+}
+
+entity UserChat {
+  *chat_id: number <<FK>>
+  *user_id: number <<FK>>
+}
+
+entity Chat {
+  *id: number <<generated>>
+  --
+  *chat_name: text
+}
+
+User ||..o{ UserChat
+UserChat }|..|| Chat
+Message }o..|| User
+Message }o..|| Chat
+
+@enduml
