@@ -1,0 +1,17 @@
+@startuml raftNode_stateDiagram
+
+state RaftNode {
+
+  [*] --> Follower: System started
+  
+  Candidate --> Follower: Discovered new leader\nor new term
+  Follower --> Candidate: Timer expired
+
+  Candidate --> Candidate: Timer expired
+
+  Candidate --> Leader: Received votes\nfrom the majority
+  Leader --> Follower: Discovered server\nwith higher term
+
+}
+
+@enduml
