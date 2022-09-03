@@ -9,13 +9,17 @@ import scala.concurrent.Future
 
 object UserQuery extends Connection {
 
-  def create(r: User): Future[Int] = db.run { users += r }
+  def create(r: User): Future[Int] = db.run {
+    users += r
+  }
 
   def delete(r: User): Future[Int] = db.run {
     val q = users.filter(_.id === r.id)
     q.delete
   }
 
-  def get: Future[Seq[User]] = db.run { users.result }
+  def get: Future[Seq[User]] = db.run {
+    users.result
+  }
 
 }
