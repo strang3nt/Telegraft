@@ -1,4 +1,4 @@
-package com.telegraft.model
+package com.telegraft.database.model
 
 final case class UserChat(
                            userId: Long,

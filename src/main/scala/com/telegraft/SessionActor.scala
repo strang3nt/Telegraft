@@ -9,31 +9,28 @@ object SessionActor {
   def apply(forwardTo: ActorRef[RaftService.Command]): Behavior[Command] =
     Behaviors.setup[Command] { context =>
 
-      val smResponseAdapter: ActorRef[SMResponse] =
-        context.messageAdapter[SMResponse](x => SMResponseWrapper(x))
+      val responseAdapter: ActorRef[SMResponse] =
+        context.messageAdapter[SMResponse](x => ResponseWrapper(x))
 
-      sendCommand(forwardTo, smResponseAdapter)
+      def sendCommand(forwardTo: ActorRef[RaftService.Command]): Behavior[Command] =
+        Behaviors.receiveMessagePartial[Command] {
+          case MsgForRaftService(command, replyTo) =>
+            forwardTo ! RaftService.MsgFromClient(command, responseAdapter)
+            expectReply(forwardTo, replyTo)
+        }
 
-    }
+      def expectReply(forwardTo: ActorRef[RaftService.Command], replyTo: ActorRef[SMResponse]): Behavior[Command] =
+        Behaviors.receiveMessagePartial[Command] {
+          case ResponseWrapper(response) =>
+            replyTo ! response
+            sendCommand(forwardTo)
+        }
 
-  def sendCommand(forwardTo: ActorRef[RaftService.Command], msgAdapter: ActorRef[SMResponse]): Behavior[Command] =
-    Behaviors.receiveMessagePartial[Command] {
-      case MsgForRaftService(command, replyTo) =>
-        forwardTo ! RaftService.MsgFromClient(command, msgAdapter)
-        expectReply(replyTo)
-    }
-
-  def expectReply(replyTo: ActorRef[SMResponse]): Behavior[Command] =
-    Behaviors.receiveMessagePartial[Command] {
-      case SMResponseWrapper(response) =>
-        replyTo ! response
-        Behaviors.stopped
+      sendCommand(forwardTo)
     }
 
   sealed trait Command
-
   final case class MsgForRaftService(command: SMCommand, replyTo: ActorRef[SMResponse]) extends Command
-
-  final case class SMResponseWrapper(reply: SMResponse) extends Command
+  final case class ResponseWrapper(reply: SMResponse) extends Command
 
 }

@@ -8,29 +8,24 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.util.Timeout
 import com.telegraft.SMProtocol._
-import com.telegraft.rafktor.RaftService
 
 import scala.concurrent.Future
 
-class Routes(raftService: ActorRef[RaftService.Command])(implicit val context: ActorContext[_]) {
+class Routes(sessionActor: ActorRef[SessionActor.Command])(implicit val context: ActorContext[_]) {
 
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
   import io.circe.generic.auto._
 
   private implicit val system: ActorSystem[Nothing] = context.system
   private implicit val timeout: Timeout = Timeout.create(system.settings.config.getDuration("akka.routes.ask-timeout"))
-  val route: Route = concat(
-    users,
-    chats,
-    messages
-  )
+
   private val users: Route = pathPrefix("users") {
     concat(
       pathEnd {
         post {
           // #users POST
           entity(as[CreateUser]) { user =>
-            onSuccess(createUser(user)) { performed =>
+               onSuccess(createUser(user)) { performed =>
               complete((StatusCodes.Created, performed))
             }
           }
@@ -83,7 +78,7 @@ class Routes(raftService: ActorRef[RaftService.Command])(implicit val context: A
           }
         },
         get {
-          parameters('userId.as[Long], 'epochTime.as[java.time.Instant]).as(GetUserMessages) { u =>
+          parameters("userId".as[Long], "epochTime".as[java.time.Instant]).as(GetUserMessages) { u =>
             onSuccess(getUserMessages(u)) { messages =>
               complete(messages)
             }
@@ -93,23 +88,27 @@ class Routes(raftService: ActorRef[RaftService.Command])(implicit val context: A
     }
   }
 
-  def createChat(c: CreateChat): Future[ActionPerformed] =
-    sessionActor.ask(SessionActor.MsgForRaftService(c, _)).mapTo
+  val route: Route = concat(
+    users,
+    chats,
+    messages
+  )
 
-  def getUser(userId: Long): Future[GetUserResponse] =
-    sessionActor.ask(SessionActor.MsgForRaftService(GetUser(userId), _)).mapTo
+  private def createChat(c: CreateChat): Future[ActionPerformed] =
+    sessionActor.ask(SessionActor.MsgForRaftService(c, _)).mapTo[ActionPerformed]
 
-  def sessionActor: ActorRef[SessionActor.Command] = context.spawnAnonymous(SessionActor.apply(raftService))
+  private def getUser(userId: Long): Future[GetUserResponse] =
+    sessionActor.ask(SessionActor.MsgForRaftService(GetUser(userId), _)).mapTo[GetUserResponse]
 
-  def createUser(u: CreateUser): Future[GetUserResponse] =
-    sessionActor.ask(SessionActor.MsgForRaftService(u, _)).mapTo
+  private def createUser(u: CreateUser): Future[ActionPerformed] =
+    sessionActor.ask(SessionActor.MsgForRaftService(u, _)).mapTo[ActionPerformed]
 
-  def sendMessageTo(msg: SendMessageTo): Future[ActionPerformed] =
-    sessionActor.ask(SessionActor.MsgForRaftService(msg, _)).mapTo
+  private def sendMessageTo(msg: SendMessageTo): Future[ActionPerformed] =
+    sessionActor.ask(SessionActor.MsgForRaftService(msg, _)).mapTo[ActionPerformed]
 
-  def joinChat(j: JoinChat): Future[ActionPerformed] =
-    sessionActor.ask(SessionActor.MsgForRaftService(j, _)).mapTo
+  private def joinChat(j: JoinChat): Future[ActionPerformed] =
+    sessionActor.ask(SessionActor.MsgForRaftService(j, _)).mapTo[ActionPerformed]
 
-  def getUserMessages(u: GetUserMessages): Future[Messages] =
-    sessionActor.ask(SessionActor.MsgForRaftService(u, _)).mapTo
+  private def getUserMessages(u: GetUserMessages): Future[Messages] =
+    sessionActor.ask(SessionActor.MsgForRaftService(u, _)).mapTo[Messages]
 }

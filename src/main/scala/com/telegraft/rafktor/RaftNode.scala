@@ -5,17 +5,20 @@ import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.persistence.typed.PersistenceId
 import akka.persistence.typed.state.scaladsl.Effect
+import com.telegraft.SMProtocol
 
 object RaftNode {
 
   // protocol
 
-  private val commandHandler: (State, Command) => Effect[State] = ???
+//  private val commandHandler: (State, Command) => Effect[State] = ???
 
-  def apply(stateMachine: ActorRef[SMCommand], persistenceId: PersistenceId): Behavior[Command] =
+  def apply(stateMachine: ActorRef[SMProtocol.Command], persistenceId: PersistenceId): Behavior[Command] =
     Behaviors.setup[Command] { context =>
       context.system.receptionist ! Receptionist.Register(RaftServiceKey, context.self)
-      Behaviors.empty
+      Behaviors.receiveMessagePartial[Command] {
+        case MsgFromClient(command, replyTo) => stateMachine ! SMProtocol.MsgFromRaftSystem(command, replyTo); Behaviors.same
+      }
     }
 
   def RaftServiceKey: ServiceKey[Command] = ServiceKey[Command]("RaftNode")
@@ -72,7 +75,7 @@ object RaftNode {
 
   final case class VoteGranted(term: Int, voteGranted: Boolean) extends Command
 
-  final case class MsgFromClient(s: SMCommand, replyTo: ActorRef[SMResponse]) extends Command
+  final case class MsgFromClient(command: SMCommand, replyTo: ActorRef[SMResponse]) extends Command
 
   final case class ChangeConfig(newConfig: Config) extends Command
 }

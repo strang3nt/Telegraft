@@ -1,0 +1,27 @@
+volumes:
+  database:
+
+services:
+  app:
+    image: telegraft:latest
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DB_NAME: telegraft
+      DB_USER: postgresuser
+      DB_PASS: password
+    ports:
+      - "8080:8080"
+  db:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgresuser
+      POSTGRES_DB: telegraft
+    ports:
+      - "5432:5432"
+    volumes:
+      - database:/var/lib/postgresql/data
+      - ../src/main/resources/db/telegraft.sql:/docker-entrypoint-initdb.d/telegraft.sql

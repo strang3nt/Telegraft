@@ -1,25 +1,30 @@
 package com.telegraft.database.query
 
-import com.telegraft.database.Connection
 import com.telegraft.database.entity.UserTable.{userTable => users}
-import com.telegraft.model.User
+import com.telegraft.database.model.User
 import slick.jdbc.PostgresProfile.api._
 
 import scala.concurrent.Future
 
-object UserQuery extends Connection {
+trait UserQuery {
 
-  def create(r: User): Future[Int] = db.run {
+  val db: Database
+
+  def createUser(r: User): Future[Int] = db.run {
     users += r
   }
 
-  def delete(r: User): Future[Int] = db.run {
+  def deleteUser(r: User): Future[Int] = db.run {
     val q = users.filter(_.id === r.id)
     q.delete
   }
 
-  def get: Future[Seq[User]] = db.run {
+  def getUser: Future[Seq[User]] = db.run {
     users.result
+  }
+
+  def getUserById(userId: Long): Future[User] = db.run {
+    users.filter(_.id === userId).result.head
   }
 
 }
