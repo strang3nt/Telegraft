@@ -1,0 +1,47 @@
+@startuml kube_cluster
+
+skinparam style strictuml
+
+actor "client"
+rectangle "K8s" {
+
+  node "telegraft-node-1" as tnode1 {
+    package "com.telegraft" as pack1 {
+      [HTTP]
+      [Raft node]
+    }
+  }
+  node "telegraft-node-2" as tnode2
+  node "telegraft-node-3" as tnode3
+
+  node "db-1" as db1 {
+    database "postgres" as ps1
+  }
+  node "db-2" as db2 {
+    database "postgres" as ps2
+  }
+  node "db-3" as db3 {
+    database "postgres" as ps3
+  }
+
+  node "LoadBalancer"
+  node "ClusterIp1"
+  node "ClusterIp2"
+  node "ClusterIp3"
+}
+
+client ..> LoadBalancer
+LoadBalancer -- tnode1
+LoadBalancer -- tnode2
+LoadBalancer -- tnode3
+[HTTP] -(0- [Raft node]
+
+tnode1 -- ClusterIp1 : TCP/IP
+tnode2 -- ClusterIp2 : TCP/IP
+tnode3 -- ClusterIp3 : TCP/IP
+
+ClusterIp1 -- db1
+ClusterIp2 -- db2
+ClusterIp3 -- db3
+
+@enduml
