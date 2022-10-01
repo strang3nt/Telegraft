@@ -1,7 +1,9 @@
 package com.telegraft.database
 
-import slick.jdbc.PostgresProfile.api._
+import slick.basic.DatabaseConfig
+import slick.jdbc.PostgresProfile
 
 object Connection {
-  val db = Database.forConfig("slick-postgres.db")
+  val dbConfig = DatabaseConfig.forConfig[PostgresProfile]("akka-persistence-jdbc.shared-databases.slick")
+
 }
