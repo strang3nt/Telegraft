@@ -6,3 +6,5 @@ target/
 .vscode
 .metals
 null/
+project/project
+metals.sbt

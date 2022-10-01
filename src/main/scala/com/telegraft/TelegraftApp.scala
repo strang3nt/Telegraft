@@ -9,6 +9,9 @@ import akka.http.scaladsl.server.Route
 import com.telegraft.rafktor.RaftService
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.javadsl.AkkaManagement
+import com.telegraft.database.{Connection, UserRepository}
+import com.telegraft.persistence.PersistentRepository
+import com.telegraft.projection.RepositoryProjection
 
 import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContextExecutor
@@ -43,7 +46,9 @@ object TelegraftApp {
       //val cluster = Cluster(context.system)
       //context.log.info("Started [" + context.system + "], cluster.selfAddress = " + cluster.selfMember.address + ")")
 
-      val stateMachine = context.spawn(SMProtocol(), "StateMachine")
+      val persistentRepository = context.spawn(PersistentRepository(), "PersistentRepository")
+      RepositoryProjection.init(context, new UserRepository(Connection.dbConfig))
+      val stateMachine = context.spawn(SMProtocol(persistentRepository), "StateMachine")
       val raftService =  context.spawn(RaftService(stateMachine), "RaftService")
 
       val requestHandler = context.spawn(SessionActor(raftService), "RequestHandler")
