@@ -7,7 +7,7 @@ rectangle "K8s" {
 
   node "telegraft-node-1" as tnode1 {
     package "com.telegraft" as pack1 {
-      [HTTP]
+      [RestService]
       [Raft node]
     }
   }
@@ -34,11 +34,11 @@ client ..> LoadBalancer
 LoadBalancer -- tnode1
 LoadBalancer -- tnode2
 LoadBalancer -- tnode3
-[HTTP] -(0- [Raft node]
+[RestService] -(0- [Raft node]
 
-tnode1 -- ClusterIp1 : TCP/IP
-tnode2 -- ClusterIp2 : TCP/IP
-tnode3 -- ClusterIp3 : TCP/IP
+tnode1 -- ClusterIp1
+tnode2 -- ClusterIp2
+tnode3 -- ClusterIp3
 
 ClusterIp1 -- db1
 ClusterIp2 -- db2
