@@ -48,7 +48,7 @@ object TelegraftApp {
 
       val persistentRepository = context.spawn(PersistentRepository(), "PersistentRepository")
       RepositoryProjection.init(context, new UserRepository(Connection.dbConfig))
-      val stateMachine = context.spawn(SMProtocol(persistentRepository), "StateMachine")
+      val stateMachine = context.spawn(StateMachine(persistentRepository), "StateMachine")
       val raftService =  context.spawn(RaftService(stateMachine), "RaftService")
 
       val requestHandler = context.spawn(SessionActor(raftService), "RequestHandler")

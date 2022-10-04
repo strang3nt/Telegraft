@@ -1,41 +1,33 @@
 package com.telegraft
 
-import akka.Done
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.util.Timeout
 import com.telegraft.persistence._
-import com.telegraft.rafktor.{SMCommand, SMResponse}
-import akka.actor.typed.scaladsl.AskPattern._
+import com.telegraft.rafktor.{SMCommand, SMProtocol, SMResponse}
 
 import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
 
-object SMProtocol {
+object StateMachine extends SMProtocol {
+
+  import SMProtocol._
 
   final case class Chat(userId: String, name: String, description: String)
   final case class Message(userId: String, chatId: Int, content: String)
   final case class User(username: String)
 
-  sealed trait Command
-  /** Request from RaftNode, to be computed and once finished acknowledged to RaftNode */
-  final case class MsgFromRaftSystem(act: SMCommand, replyTo: ActorRef[SMResponse]) extends Command
-  /** Wrapped response for Akka's pipeToSelf interaction pattern */
-  private final case class WrappedResponse(result: SMResponse, replyTo: ActorRef[SMResponse]) extends Command
+  final case class CreateChat(userId: Long, c: Chat) extends SMCommand
+  final case class GetUser(userId: Long) extends SMCommand
+  final case class CreateUser(userName: String) extends SMCommand
+  final case class SendMessageTo(userId: Long, receiverId: Long, content: String) extends SMCommand
+  final case class JoinChat(userId: Long, chatId: Long) extends SMCommand
+  final case class GetUserMessages(userId: Long, timestamp: java.time.Instant) extends SMCommand
 
-  sealed trait Action extends SMCommand
-  final case class CreateChat(userId: Long, c: Chat) extends Action
-  final case class GetUser(userId: Long) extends Action
-  final case class CreateUser(userName: String) extends Action
-  final case class SendMessageTo(userId: Long, receiverId: Long, content: String) extends Action
-  final case class JoinChat(userId: Long, chatId: Long) extends Action
-  final case class GetUserMessages(userId: Long, timestamp: java.time.Instant) extends Action
-
-  sealed trait Response extends SMResponse
-  final case class ActionPerformed(msg: String) extends Response
-  final case class ActionFailed(err: String) extends Response
-  final case class Messages(userId: Long, messages: Seq[Message]) extends Response
-  final case class GetUserResponse(maybeUser: Option[User]) extends Response
+  final case class ActionPerformed(msg: String) extends SMResponse
+  final case class ActionFailed(err: String) extends SMResponse
+  final case class Messages(userId: Long, messages: Seq[Message]) extends SMResponse
+  final case class GetUserResponse(maybeUser: Option[User]) extends SMResponse
 
   def apply(persistentRepository: ActorRef[PersistentRepository.Command]): Behavior[Command] = Behaviors.receivePartial[Command] {
     case (ctx, command) => {
@@ -43,7 +35,7 @@ object SMProtocol {
       implicit val timeout: Timeout = 3.seconds
 
       command match {
-        case MsgFromRaftSystem(act: Action, replyTo: ActorRef[Response]) =>
+        case MsgFromRaftSystem(act, replyTo) =>
           act match {
             case CreateChat(userId, c) => Behaviors.same
             case GetUser(userId) => Behaviors.same
@@ -56,8 +48,9 @@ object SMProtocol {
             case SendMessageTo(userId: Long, receiverId: Long, content: String) => Behaviors.same
             case JoinChat(userId: Long, chatId: Long) => Behaviors.same
             case GetUserMessages(userId: Long, timestamp: java.time.Instant) => Behaviors.same
+            case _ => Behaviors.unhandled
           }
-        case WrappedResponse(result: Response, replyTo: ActorRef[Response]) =>
+        case WrappedResponse(result, replyTo) =>
           replyTo ! result
           Behaviors.same
       }

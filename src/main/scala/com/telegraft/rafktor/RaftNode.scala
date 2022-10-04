@@ -4,8 +4,7 @@ import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.persistence.typed.PersistenceId
-import akka.persistence.typed.state.scaladsl.Effect
-import com.telegraft.SMProtocol
+import com.telegraft.rafktor.SMProtocol
 
 object RaftNode {
 
