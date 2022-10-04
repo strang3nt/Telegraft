@@ -1,9 +1,3 @@
-lazy val akkaHttpVersion = "10.2.10"
-lazy val akkaVersion     = "2.6.20"
-lazy val circeVersion    = "0.14.2"
-lazy val akkaManagementVersion = "1.1.4"
-lazy val postgresqlVersion     = "42.5.0"
-
 scalaVersion := "2.13.8"
 
 // make version compatible with docker for publishing
@@ -34,6 +28,14 @@ dockerCommands ++= Seq(
 
 // End docker packaging
 
+lazy val akkaHttpVersion = "10.2.10"
+lazy val akkaVersion     = "2.6.20"
+lazy val circeVersion    = "0.14.2"
+lazy val akkaManagementVersion = "1.1.4"
+lazy val postgresqlVersion     = "42.5.0"
+lazy val akkaProjectionVersion = "1.2.5"
+lazy val akkaPersistenceJdbcVersion = "5.1.0"
+
 lazy val root = (project in file(".")).
   settings(
     inThisBuild(List(
@@ -47,11 +49,15 @@ lazy val root = (project in file(".")).
       "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
       "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion,
       "com.typesafe.akka" %% "akka-cluster-typed" % akkaVersion,
-      "com.lightbend.akka" %% "akka-stream-alpakka-slick" % "4.0.0",
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-      "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-discovery" % akkaVersion,
       "com.typesafe.akka" %% "akka-cluster-sharding-typed" % akkaVersion,
+      "com.lightbend.akka" %% "akka-stream-alpakka-slick" % "4.0.0",
+      "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
+      "com.lightbend.akka" %% "akka-projection-eventsourced" % akkaProjectionVersion,
+      "com.lightbend.akka" %% "akka-projection-core" % akkaProjectionVersion,
+      "com.lightbend.akka" %% "akka-projection-slick" % akkaProjectionVersion,
+      "com.lightbend.akka" %% "akka-persistence-jdbc" % akkaPersistenceJdbcVersion,
       "com.lightbend.akka.discovery" %% "akka-discovery-kubernetes-api" % akkaManagementVersion,
       "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % akkaManagementVersion,
       "com.lightbend.akka.management" %% "akka-management-cluster-http" % akkaManagementVersion,
