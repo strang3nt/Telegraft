@@ -9,10 +9,10 @@ The project uses technologies from Akka and Scala and Docker and Kubernetes for 
 ## Purpose (technical and scientific expectations)
 
  - implement Raft algorithm through Akka and actors
- - observe and compare the behavior of different consensus algorhtms (namely Raft and Gossip).
+ - observe and compare the behavior of different consensus algorithms (namely Raft and Gossip).
 
  I expect gossip to be faster, because it supports a nosql database, tuned for reads.
- On the opposite side CockroachDB supports PostgreSQL which is a relational database, whose main purpose is space complexity.
+ On the opposite side CockroachDB supports PostgresSQL which is a relational database, whose main purpose is space complexity.
  CockroachDB was built with the main concern of being consistent across many widespread replicas.
  This difference is also what explain the different consensus algorithm.
 
@@ -21,10 +21,10 @@ The project uses technologies from Akka and Scala and Docker and Kubernetes for 
  - explore how the actor model can be used to implement the Raft algorithm.
  - cockroachDB vs Cassandra:
    - are all replicas really consistent at any time? (stress test)
-   - speed (how many successfull actions in a fixed amount of time)
+   - speed (how many successful actions in a fixed amount of time)
    - observe behavior against different number of replicas
 
-Tipical workload of a chat application: many writes (messages sent) and much more periodic small reads (messages received).
+Typical workload of a chat application: many writes (messages sent) and much more periodic small reads (messages received).
 
 # Work product
 

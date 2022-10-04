@@ -1,5 +1,6 @@
 package com.telegraft
 
+import akka.actor.typed.scaladsl.AskPattern.Askable
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.util.Timeout
@@ -33,7 +34,6 @@ object StateMachine extends SMProtocol {
     case (ctx, command) => {
 
       implicit val timeout: Timeout = 3.seconds
-
       command match {
         case MsgFromRaftSystem(act, replyTo) =>
           act match {

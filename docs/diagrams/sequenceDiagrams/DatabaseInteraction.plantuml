@@ -1,0 +1,39 @@
+@startuml DatabaseInteraction
+
+skinparam style strictuml
+autonumber
+skinparam sequenceReferenceBackgroundColor white
+
+mainframe **sd** DatabaseInteraction
+
+entity StateMachine
+boundary PersistentRepository
+database EventJournal
+entity RepositoryProjectionHandler
+boundary UserRepository
+database TelegraftDb
+
+activate StateMachine
+activate PersistentRepository
+StateMachine ->> PersistentRepository: Create user
+PersistentRepository -> PersistentRepository: Persist user
+PersistentRepository -->> StateMachine: Ack
+deactivate StateMachine
+
+activate EventJournal
+PersistentRepository ->> EventJournal: User saved
+deactivate PersistentRepository
+activate RepositoryProjectionHandler
+RepositoryProjectionHandler ->> EventJournal: Pull events
+RepositoryProjectionHandler <<-- EventJournal: Publish events
+deactivate EventJournal
+
+
+RepositoryProjectionHandler ->> UserRepository: Create user
+activate UserRepository
+
+deactivate UserRepository
+
+deactivate RepositoryProjectionHandler
+
+@enduml

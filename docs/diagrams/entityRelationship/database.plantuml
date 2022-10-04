@@ -2,8 +2,7 @@
 entity User {
   *id: number <<generated>>
   --
-  *username: text
-  *password: text
+  *username: text <<unique>>
 }
 
 entity Message {

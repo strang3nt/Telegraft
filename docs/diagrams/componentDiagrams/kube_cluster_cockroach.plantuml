@@ -1,4 +1,4 @@
-@startuml kube_cluster
+@startuml kube_cluster_cockroachdb
 
 skinparam style strictuml
 
