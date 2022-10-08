@@ -5,43 +5,43 @@ skinparam style strictuml
 actor "client"
 rectangle "K8s" {
 
-  node "telegraft-node-1" as tnode1 {
-    package "com.telegraft" as pack1 {
-      [RestService]
-      [Raft node]
-    }
-  }
-  node "telegraft-node-2" as tnode2
-  node "telegraft-node-3" as tnode3
-
-  node "db-1" as db1 {
-    database "postgres" as ps1
-  }
-  node "db-2" as db2 {
-    database "postgres" as ps2
-  }
-  node "db-3" as db3 {
-    database "postgres" as ps3
+  node Telegraft as tnode1 {
+    component [Application] as app1
+    database "db-1" as db1
   }
 
-  node "LoadBalancer"
-  node "ClusterIp1"
-  node "ClusterIp2"
-  node "ClusterIp3"
+  node Telegraft as tnode2 {
+    component [Application] as app2
+      database "db-2" as db2
+  }
+
+  node Telegraft as tnode3 {
+    component [Application] as app3
+    database "db-3" as db3
+  }
+
+  node "Raft node" as rn1
+  node "Raft node" as rn2
+  node "Raft node" as rn3
+  node LoadBalancer
+
 }
 
 client ..> LoadBalancer
 LoadBalancer -- tnode1
 LoadBalancer -- tnode2
 LoadBalancer -- tnode3
-[RestService] -(0- [Raft node]
 
-tnode1 -- ClusterIp1
-tnode2 -- ClusterIp2
-tnode3 -- ClusterIp3
+app1 -- db1
+app2 -- db2
+app3 -- db3
 
-ClusterIp1 -- db1
-ClusterIp2 -- db2
-ClusterIp3 -- db3
+tnode1 -- rn1
+tnode2 -- rn2
+tnode3 -- rn3
+
+rn1 -- rn2
+rn2 -- rn3
+rn3 -- rn1
 
 @enduml
