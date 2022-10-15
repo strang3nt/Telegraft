@@ -1,0 +1,18 @@
+---
+from: markdown
+
+to: beamer
+
+output-file: ${.}/meeting_01.pdf
+
+input-file: ${.}/meeting_01.md
+
+metadata-file: ${.}/metadata.yaml
+
+citeproc: true
+
+bibliography: ${.}/references.bib
+
+csl: https://www.zotero.org/styles/ieee
+
+...

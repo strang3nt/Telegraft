@@ -1,0 +1,45 @@
+@startuml kube_cluster
+
+skinparam style strictuml
+
+actor "client"
+rectangle "K8s" {
+
+  node "Load balancer" as lb
+
+  node "node-1" as n1 {
+    node Telegraft as tnode1 {
+      component [State Machine] as stm
+      database "data" as db1
+    }
+
+    node "telegraft-grpc" as grpc
+    node "telegraft-raft" as raft
+  }
+
+  node "node-2" as n2 {
+    node "telegraft-raft" as raft2
+  }
+
+  node "node-3" as n3 {
+    node "telegraft-raft" as raft3
+  }
+
+}
+
+client ..> lb: rest
+lb -- grpc
+lb -- n2
+lb -- n3
+
+stm -- db1
+
+grpc -- raft: gRPC
+grpc -- stm: gRPC
+raft -- stm: gRPC
+raft -- raft2: gRPC
+raft -- raft3: gRPC
+raft2 -- raft3: gRPC
+
+
+@enduml

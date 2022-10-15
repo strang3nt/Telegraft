@@ -1,0 +1,50 @@
+@startuml HttpRequest
+
+skinparam style strictuml
+autonumber
+
+skinparam sequenceReferenceBackgroundColor white
+
+mainframe **sd** HttpRequest
+
+actor Client
+boundary Routes
+entity SessionActor
+box com.telegraft.rafktor
+entity RaftService
+entity RaftNode
+end box
+entity StateMachine
+
+Client -> Routes: Client http request
+
+activate Routes
+
+
+Routes ->> SessionActor ** : Delegate request
+
+activate SessionActor
+SessionActor ->> RaftService: Forward request
+
+RaftService ->> RaftNode: Forward request
+
+activate RaftNode
+RaftNode ->> RaftNode
+note left: Execution of \nRaft algorithm
+RaftNode ->> StateMachine: Commit
+
+activate StateMachine
+ref over StateMachine: DatabaseInteraction
+RaftNode <<-- StateMachine: Ack
+deactivate RaftNode
+
+SessionActor <<-- StateMachine: Result of request
+deactivate StateMachine
+
+Routes <<-- SessionActor: client request result
+destroy SessionActor
+
+Client <<-- Routes: Result of request
+deactivate Routes
+
+@enduml
