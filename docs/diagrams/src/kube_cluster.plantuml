@@ -13,7 +13,7 @@ rectangle "K8s" {
       database "data" as db1
     }
 
-    node "telegraft-grpc" as grpc
+    node "telegraft-facade" as grpc
     node "telegraft-raft" as raft
   }
 

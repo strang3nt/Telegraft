@@ -1,8 +1,8 @@
-name := "telegraft-state-machine"
+name := "telegraft-statemachine-service"
 
 organization := "com.telegraft.statemachine"
 
-scalaVersion := "2.13.9"
+scalaVersion := "2.13.10"
 
 Compile / scalacOptions ++= Seq(
   "-release:17",

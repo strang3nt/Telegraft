@@ -1,10 +1,10 @@
-name := "shopping-cart-service"
+name := "telegraft-rest-service"
 
 organization := "com.telegraft.rest"
 organizationHomepage := Some(url("https://akka.io"))
 licenses := Seq(("CC0", url("https://creativecommons.org/publicdomain/zero/1.0")))
 
-scalaVersion := "2.13.9"
+scalaVersion := "2.13.10"
 
 Compile / scalacOptions ++= Seq(
   "-release:17",
