@@ -1,10 +1,23 @@
 package com.telegraft.rafktor
 
+import akka.actor.typed.ActorSystem
+
 /**
  * Holds a collection of Servers, meaning all the nodes participating
  * in the cluster
  */
 object Configuration {
 
-  val nodes: Set[Server] = Set.empty[Server]
+  private val defaultConfig: Map[String, (String, Int)] = ???
+
+  private var nodes: Set[Server] = Set.empty
+
+  def apply(system: ActorSystem[_]): Unit = {
+    this.nodes =
+      defaultConfig.map { case (_, (host, port)) =>
+        new Server(host, port)(system)
+      }.toSet
+  }
+  def getOldConfiguration: Set[Server] = ???
+  def getNewConfiguration: Set[Server] = ???
 }

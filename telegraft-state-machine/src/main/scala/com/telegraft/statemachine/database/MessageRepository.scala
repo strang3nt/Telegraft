@@ -6,20 +6,36 @@ import slick.jdbc.PostgresProfile
 import slick.jdbc.PostgresProfile.api._
 
 import java.time.Instant
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
-final case class Message(id: Long, userId: Long, chatId: Long, content: String)
+final case class Message(
+    id: Long,
+    userId: String,
+    chatId: String,
+    content: String,
+    timestamp: Instant)
 
-class MessageRepository(val dbConfig: DatabaseConfig[PostgresProfile], val chats: ChatRepository, val users: UserRepository)(implicit ec: ExecutionContext) {
+class MessageRepository(
+    val dbConfig: DatabaseConfig[PostgresProfile],
+    val chats: ChatRepository,
+    val users: UserRepository)(implicit ec: ExecutionContext) {
 
-  private[database] class MessageTable(tag: Tag) extends Table[Message](tag, "message") {
+  private[database] class MessageTable(tag: Tag)
+      extends Table[Message](tag, "message") {
 
     def timestamp = column[Instant]("sent_time", O.Default(Instant.now()))
-    def user = foreignKey("customer_id_fk", userId, users.userTable)(_.id, onUpdate = ForeignKeyAction.Restrict, onDelete = ForeignKeyAction.Cascade)
-    def userId = column[Long]("customer_id")
-    def chat = foreignKey("chat_id_fk", chatId, chats.chatTable)(_.id, onUpdate = ForeignKeyAction.Restrict, onDelete = ForeignKeyAction.Cascade)
-    def chatId = column[Long]("chat_id")
-    override def * = (id, userId, chatId, content) <> (Message.tupled, Message.unapply)
+    def user = foreignKey("customer_id_fk", userId, users.userTable)(
+      _.id,
+      onUpdate = ForeignKeyAction.Restrict,
+      onDelete = ForeignKeyAction.Cascade)
+    def userId = column[String]("customer_id")
+    def chat = foreignKey("chat_id_fk", chatId, chats.chatTable)(
+      _.id,
+      onUpdate = ForeignKeyAction.Restrict,
+      onDelete = ForeignKeyAction.Cascade)
+    def chatId = column[String]("chat_id")
+    override def * =
+      (id, userId, chatId, content, timestamp).mapTo[Message]
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
     def content = column[String]("content")
   }

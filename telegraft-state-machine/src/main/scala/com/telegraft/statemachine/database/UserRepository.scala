@@ -5,17 +5,18 @@ import slick.basic.DatabaseConfig
 import slick.jdbc.PostgresProfile
 import slick.jdbc.PostgresProfile.api._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
-final case class User(id: Long, userName: String)
+final case class User(id: String, userName: String)
 
-class UserRepository(val dbConfig: DatabaseConfig[PostgresProfile])(implicit ec: ExecutionContext) {
+class UserRepository(val dbConfig: DatabaseConfig[PostgresProfile])(
+    implicit ec: ExecutionContext) {
 
-  private[database] class UserTable(tag: Tag) extends Table[User](tag, "customer") {
-
-    override def * = (id, userName) <> (User.tupled, User.unapply)
-    def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
+  private[database] class UserTable(tag: Tag)
+      extends Table[User](tag, "customer") {
+    def id = column[String]("id", O.PrimaryKey)
     def userName = column[String]("username", O.Unique)
+    override def * = (id, userName).mapTo[User]
   }
 
   private[database] lazy val userTable = TableQuery[UserTable]
@@ -29,7 +30,7 @@ class UserRepository(val dbConfig: DatabaseConfig[PostgresProfile])(implicit ec:
 
   def getUsers: DBIO[Seq[User]] = userTable.result
 
-  def getUserById(userId: Long): Future[User] = dbConfig.db.run {
+  def getUserById(userId: String): Future[User] = dbConfig.db.run {
     userTable.filter(_.id === userId).result.head
   }
 

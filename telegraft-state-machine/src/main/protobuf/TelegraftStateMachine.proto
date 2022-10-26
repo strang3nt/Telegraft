@@ -23,19 +23,23 @@ message CreateUserRequest {
 
 message CreateUserResponse {
   bool ok = 1;
+  string userId = 2;
+  optional string errorMessage = 3;
 }
 
 message SendMessageRequest {
   string sender = 1;
-  int64 receiver = 2;
+  string receiver = 2;
   string content = 3;
   google.protobuf.Timestamp timestamp = 4;
 }
 
 message SendMessageResponse {
+
   bool ok = 1;
   string sender = 2;
-  int64 receiver = 3;
+  string receiver = 3;
+  optional string errorMessage = 4;
 }
 
 message CreateChatRequest {
@@ -46,32 +50,39 @@ message CreateChatRequest {
 
 message CreateChatResponse {
   bool ok = 1;
-  int64 chatId = 2;
+  string chatId = 2;
+
+  optional string errorMessage = 3;
 }
 
 message JoinChatRequest {
   string userToAdd = 1;
-  int64 chatId = 2;
+  string chatId = 2;
 }
 
 message JoinChatResponse {
   bool ok = 1;
   string userToAdd = 2;
-  int64 chatId = 3;
+  string chatId = 3;
+
+  optional string errorMessage = 4;
 }
 
 message GetMessagesRequest {
-  string user = 1;
+  string userId = 1;
   google.protobuf.Timestamp messagesAfter = 2;
 }
 
 message GetMessagesResponse {
-  repeated Message messages = 1;
+  bool ok = 1;
+  repeated Message messages = 2;
+
+  optional string errorMessage = 3;
 }
 
 message Message {
   string sender = 1;
-  int64 chatId = 2;
+  string chatId = 2;
   string content = 3;
   google.protobuf.Timestamp sentTime = 4;
 }

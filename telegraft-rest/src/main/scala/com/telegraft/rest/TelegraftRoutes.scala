@@ -7,19 +7,21 @@ import com.telegraft.statemachine.proto._
 import akka.http.scaladsl.model.StatusCodes
 import com.google.protobuf.timestamp.Timestamp
 
-class TelegraftRoutes(smService: TelegraftStateMachineService, raftService: TelegraftStateMachineService) (implicit val context: ActorContext[_]) {
+class TelegraftRoutes(
+    smService: TelegraftStateMachineService,
+    raftService: TelegraftStateMachineService)(
+    implicit val context: ActorContext[_]) {
 
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
   import scalapb_circe.codec._
 
   val route: Route = concat(
-
     pathPrefix("users") {
       pathEnd {
         post {
           // #users POST
           entity(as[CreateUserRequest]) { user =>
-               onSuccess(raftService.createUser(user)) { performed =>
+            onSuccess(raftService.createUser(user)) { performed =>
               complete((StatusCodes.Created, performed))
             }
           }
@@ -27,7 +29,6 @@ class TelegraftRoutes(smService: TelegraftStateMachineService, raftService: Tele
         }
       }
     },
-
     pathPrefix("chats") {
       pathEnd {
         concat(
@@ -44,11 +45,9 @@ class TelegraftRoutes(smService: TelegraftStateMachineService, raftService: Tele
                 complete(StatusCodes.OK, performed)
               }
             }
-          }
-        )
+          })
       }
     },
-
     pathPrefix("messages") {
       pathEnd {
         concat(
@@ -60,15 +59,15 @@ class TelegraftRoutes(smService: TelegraftStateMachineService, raftService: Tele
             }
           },
           get {
-            parameters("userId".as[String], "epochTime".as[Timestamp]) { (userId, timestamp) =>
-              onSuccess(smService.getMessages(GetMessagesRequest(userId, Some(timestamp)))) { messages =>
-                complete(messages)
-              }
+            parameters("userId".as[String], "epochTime".as[Timestamp]) {
+              (userId, timestamp) =>
+                onSuccess(smService.getMessages(
+                  GetMessagesRequest(userId, Some(timestamp)))) { messages =>
+                  complete(messages)
+                }
             }
-          }
-        )
+          })
       }
-    }
-  )
+    })
 
 }

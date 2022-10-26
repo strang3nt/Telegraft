@@ -26,11 +26,9 @@ val AkkaManagementVersion = "1.1.4"
 val AkkaPersistenceJdbcVersion = "5.1.0"
 val AkkaProjectionVersion = "1.2.5"
 
-enablePlugins(AkkaGrpcPlugin)
+enablePlugins(AkkaGrpcPlugin, JavaAppPackaging, DockerPlugin, UniversalPlugin)
 
-enablePlugins(JavaAppPackaging, DockerPlugin, UniversalPlugin)
-
-import com.typesafe.sbt.packager.docker.{Cmd, ExecCmd}
+import com.typesafe.sbt.packager.docker.{ Cmd, ExecCmd }
 
 Universal / javaOptions += "-Dconfig.resource=local.conf"
 dockerUpdateLatest := true
@@ -40,8 +38,7 @@ dockerRepository := sys.props.get("docker.registry")
 ThisBuild / dynverSeparator := "-"
 dockerCommands ++= Seq(
   Cmd("USER", "root"),
-  ExecCmd("RUN", "apk", "add", "bash")
-)
+  ExecCmd("RUN", "apk", "add", "bash"))
 
 libraryDependencies ++= Seq(
   // 1. Basic dependencies for a clustered application
@@ -50,7 +47,6 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-cluster-sharding-typed" % AkkaVersion,
   "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test,
   "com.typesafe.akka" %% "akka-stream-testkit" % AkkaVersion % Test,
-
   // Akka Management powers Health Checks and Akka Cluster Bootstrapping
   "com.lightbend.akka.management" %% "akka-management" % AkkaManagementVersion,
   "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,

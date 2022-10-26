@@ -5,24 +5,45 @@ import slick.basic.DatabaseConfig
 import slick.jdbc.PostgresProfile
 import slick.jdbc.PostgresProfile.api._
 
-import scala.concurrent.Future
+import java.time.Instant
+import scala.concurrent.{ ExecutionContext, Future }
 
-class DatabaseRepository (
-                           dbConfig: DatabaseConfig[PostgresProfile],
-                           chatRepository: ChatRepository,
-                           userRepository: UserRepository,
-                           messageRepository: MessageRepository,
-                           userChatRepository: UserChatRepository) {
+object DatabaseRepository {
 
-  def createTable: Future[Unit] = dbConfig.db.run{
-    DBIO.seq(
-      chatRepository.chatTable.schema.createIfNotExists,
-      userRepository.userTable.schema.createIfNotExists,
-      messageRepository.messageTable.schema.createIfNotExists,
-      userChatRepository.userChatTable.schema.createIfNotExists
-    ).transactionally
+  private val dbConfig: DatabaseConfig[PostgresProfile] = Connection.dbConfig
+  import ExecutionContext.Implicits.global
+
+  private val chatRepo = new ChatRepository(dbConfig)
+  private val userRepo = new UserRepository(dbConfig)
+  private val messageRepo =
+    new MessageRepository(dbConfig, chatRepo, userRepo)
+  private val userChatRepo =
+    new UserChatRepository(dbConfig, chatRepo, userRepo)
+
+  def createTable: Future[Unit] = dbConfig.db.run {
+    DBIO
+      .seq(
+        chatRepo.chatTable.schema.createIfNotExists,
+        userRepo.userTable.schema.createIfNotExists,
+        messageRepo.messageTable.schema.createIfNotExists,
+        userChatRepo.userChatTable.schema.createIfNotExists)
+      .transactionally
   }
 
-  def createUserChat(userId: Long, chat: Chat): DBIO[Done] = ???
+  def createUserChat(userId: String, chatId: String): DBIO[Done] = ???
+  def getUserChats(userId: String): Future[Seq[Chat]] = {
 
+    dbConfig.db.run {
+      userChatRepo.userChatTable
+        .filter(_.userId === userId)
+        .join(chatRepo.chatTable)
+        .on(_.userId === _.id)
+        .map(_._2)
+        .result
+    }
+  }
+
+  def getMessagesAfterTimestamp(
+      userId: String,
+      timestamp: Instant): Future[Seq[Message]] = ???
 }

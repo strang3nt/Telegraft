@@ -13,7 +13,14 @@ rectangle "K8s" {
       database "data" as db1
     }
 
-    node "telegraft-facade" as grpc
+  node "facade" as grpc
+
+  note left of grpc
+    Any client to raft and
+    state machine: e.g.
+    a UI or a REST interface.
+  end note
+
     node "telegraft-raft" as raft
   }
 
@@ -27,16 +34,16 @@ rectangle "K8s" {
 
 }
 
-client ..> lb: rest
-lb -- grpc
+client ..> lb: REST
+lb -- grpc: REST
 lb -- n2
 lb -- n3
 
 stm -- db1
 
-grpc -- raft: gRPC
-grpc -- stm: gRPC
-raft -- stm: gRPC
+grpc -- raft: gRPC: write query
+grpc -- stm: gRPC: read query
+raft -- stm: gRPC: write query
 raft -- raft2: gRPC
 raft -- raft3: gRPC
 raft2 -- raft3: gRPC
