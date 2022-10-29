@@ -1,5 +1,6 @@
 package com.telegraft.statemachine.persistence
 
+import akka.Done
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior, SupervisorStrategy}
 import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity, EntityContext, EntityTypeKey}
@@ -38,19 +39,19 @@ object PersistentChat {
       name: String,
       creator: String,
       description: String,
-      replyTo: ActorRef[StatusReply[String]])
+      replyTo: ActorRef[StatusReply[Chat]])
       extends Command
   final case class SendMessageTo(
       sender: String,
       receiver: String,
       content: String,
       timestamp: Instant,
-      replyTo: ActorRef[StatusReply[String]])
+      replyTo: ActorRef[StatusReply[Message]])
       extends Command
   final case class JoinChat(
       chatId: String,
       userId: String,
-      replyTo: ActorRef[StatusReply[String]])
+      replyTo: ActorRef[StatusReply[Done]])
       extends Command
 
   // state
@@ -58,15 +59,15 @@ object PersistentChat {
       id: String,
       name: String,
       description: String,
-      members: Vector[String],
+      members: Set[String],
       messages: List[Message])
       extends CborSerializable {
     def setId(newId: String): Chat = copy(id = newId)
     def addMessage(msg: Message): Chat = copy(messages = this.messages :+ msg)
-    def addUser(userId: String): Chat = copy(members = this.members :+ userId)
+    def addUser(userId: String): Chat = copy(members = this.members + userId)
   }
   object Chat {
-    val empty: Chat = Chat("", "", "", Vector.empty, List.empty)
+    val empty: Chat = Chat("", "", "", Set.empty[String], List.empty)
   }
   sealed trait Event
   final case class MessageAdded(msg: Message) extends Event
@@ -103,19 +104,16 @@ object PersistentChat {
                 chatId,
                 name,
                 description,
-                state.members :+ creator,
+                state.members + creator,
                 state.messages)))
-          .thenReply(replyTo)(_ =>
-            StatusReply.Success(s"Chat created with id ${state.id}"))
+          .thenReply(replyTo)(StatusReply.Success(_))
 
       case SendMessageTo(sender, receiver, content, timestamp, replyTo) =>
         val msg = Message(sender, content, timestamp)
         if (receiver == state.id)
           Effect
             .persist(MessageAdded(msg))
-            .thenReply(replyTo)(_ =>
-              StatusReply.Success(
-                s"Message sent from user '$sender' to chat '${state.id}'"))
+            .thenReply(replyTo)(_ => StatusReply.Success(msg))
         else
           Effect.reply(replyTo)(
             StatusReply.Error(new RuntimeException(
@@ -125,8 +123,7 @@ object PersistentChat {
         if (chatId == state.id)
           Effect
             .persist(ChatJoined(userId))
-            .thenReply(replyTo)(_ =>
-              StatusReply.Success(s"User '$userId' joined chat '${state.id}'"))
+            .thenReply(replyTo)(_ => StatusReply.ack())
         else
           Effect.reply(replyTo)(StatusReply.Error(new RuntimeException(
             s"Request to join '$chatId', but request sent to chat '${state.id}'.")))

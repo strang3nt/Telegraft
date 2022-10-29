@@ -10,28 +10,27 @@ import akka.projection.eventsourced.scaladsl.EventSourcedProvider
 import akka.projection.scaladsl.ExactlyOnceProjection
 import akka.projection.slick.SlickProjection
 import akka.projection.{ ProjectionBehavior, ProjectionId }
-import com.telegraft.statemachine.database.{ Connection, UserRepository }
+import com.telegraft.statemachine.database.Connection
 import com.telegraft.statemachine.persistence.PersistentUser
 
 object UserProjection {
 
-  def init(system: ActorSystem[_], repository: UserRepository): Unit = {
+  def init(system: ActorSystem[_]): Unit = {
     ShardedDaemonProcess(system).init(
       name = "PersistentUserProjection",
       PersistentUser.tags.size,
       index =>
-        ProjectionBehavior(createProjectionFor(system, repository, index)),
+        ProjectionBehavior(createProjectionFor(system, index)),
       ShardedDaemonProcessSettings(system),
       Some(ProjectionBehavior.Stop))
   }
 
   private def createProjectionFor(
       system: ActorSystem[_],
-      repository: UserRepository,
       index: Int)
       : ExactlyOnceProjection[Offset, EventEnvelope[PersistentUser.Event]] = {
 
-    implicit val sys = system
+    implicit val sys: ActorSystem[_] = system
     val tag = PersistentUser.tags(index)
 
     val sourceProvider =
@@ -44,7 +43,7 @@ object UserProjection {
       projectionId = ProjectionId("PersistentUserProjection", tag),
       sourceProvider,
       Connection.dbConfig,
-      handler = () => new RepositoryProjectionHandler(repository))
+      handler = () => new PersistentUserProjectionHandler())
 
   }
 

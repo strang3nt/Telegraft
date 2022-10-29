@@ -28,8 +28,8 @@ message CreateUserResponse {
 }
 
 message SendMessageRequest {
-  string sender = 1;
-  string receiver = 2;
+  string userId = 1;
+  string chatId = 2;
   string content = 3;
   google.protobuf.Timestamp timestamp = 4;
 }
@@ -37,13 +37,12 @@ message SendMessageRequest {
 message SendMessageResponse {
 
   bool ok = 1;
-  string sender = 2;
-  string receiver = 3;
-  optional string errorMessage = 4;
+  optional Message message = 2;
+  optional string errorMessage = 3;
 }
 
 message CreateChatRequest {
-  string user = 1;
+  string userId = 1;
   string chatName = 2;
   string chatDescription = 3;
 }
@@ -56,16 +55,13 @@ message CreateChatResponse {
 }
 
 message JoinChatRequest {
-  string userToAdd = 1;
+  string userId = 1;
   string chatId = 2;
 }
 
 message JoinChatResponse {
   bool ok = 1;
-  string userToAdd = 2;
-  string chatId = 3;
-
-  optional string errorMessage = 4;
+  optional string errorMessage = 2;
 }
 
 message GetMessagesRequest {
@@ -81,7 +77,7 @@ message GetMessagesResponse {
 }
 
 message Message {
-  string sender = 1;
+  string userId = 1;
   string chatId = 2;
   string content = 3;
   google.protobuf.Timestamp sentTime = 4;

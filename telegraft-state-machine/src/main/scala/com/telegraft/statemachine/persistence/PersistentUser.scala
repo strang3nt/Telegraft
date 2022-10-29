@@ -1,7 +1,6 @@
 package com.telegraft.statemachine.persistence
 
 import akka.actor.typed.{ ActorRef, ActorSystem, Behavior, SupervisorStrategy }
-import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.cluster.sharding.typed.scaladsl.{
   ClusterSharding,
   Entity,

@@ -13,11 +13,11 @@ object DatabaseRepository {
   private val dbConfig: DatabaseConfig[PostgresProfile] = Connection.dbConfig
   import ExecutionContext.Implicits.global
 
-  private val chatRepo = new ChatRepository(dbConfig)
-  private val userRepo = new UserRepository(dbConfig)
-  private val messageRepo =
+  val chatRepo = new ChatRepository(dbConfig)
+  val userRepo = new UserRepository(dbConfig)
+  val messageRepo =
     new MessageRepository(dbConfig, chatRepo, userRepo)
-  private val userChatRepo =
+  val userChatRepo =
     new UserChatRepository(dbConfig, chatRepo, userRepo)
 
   def createTable: Future[Unit] = dbConfig.db.run {
