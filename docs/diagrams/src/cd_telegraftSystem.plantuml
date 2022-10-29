@@ -1,11 +1,9 @@
-@startuml TelegraftSystem
+@startuml SendGetMessage
 
-mainframe **cd** Telegraft Interactions
+mainframe **cd** SendGetMessage
 
 skinparam style strictuml
 skinparam sequenceMessageAlign direction
-
-
 
 actor Client
 
@@ -30,12 +28,18 @@ f - t
 t -- r
 r - f
 
-Client -- Facade: 1. SendMessage()\n2. JoinChat()\n3. CreateChat()\n4. CreateUser()\n5. GetMessages()\n<&arrow-bottom>
+Client --> Facade: 1. SendMessage()\n2. JoinChat()\n3. CreateChat()\n4. CreateUser()\n5. GetMessages()
 
 
-Facade -- Raft: 1. SendMessage()\n2. JoinChat()\n3. CreateChat()\n4. CreateUser()\n<&arrow-bottom>
-Facade -- Telegraft: 5.GetMessages()\n<&arrow-bottom>
-Raft -- Telegraft: 1. SendMessage()\n2. JoinChat()\n3. CreateChat()\n4. CreateUser()\n<&arrow-bottom>
+Facade --> Raft: 1. SendMessage()\n2. JoinChat()\n3. CreateChat()\n4. CreateUser()
+note right of Raft
+  Each action is spread
+  across the Raft network.
+
+end note
+Facade --> Telegraft: 5.GetMessages()
+
+Raft --> Telegraft: 1. SendMessage()\n2. JoinChat()\n3. CreateChat()\n4. CreateUser()
 Raft -- r
 
 Raft -- node3

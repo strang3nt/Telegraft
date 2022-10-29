@@ -9,6 +9,7 @@ package com.telegraft.rafktor;
 
 message LogEntryPayload {
   oneof payload {
+
     statemachine.CreateUserRequest createUser = 1;
     statemachine.SendMessageRequest sendMessage = 2;
     statemachine.CreateChatRequest createChat = 3;
@@ -98,8 +99,7 @@ message AppendEntriesPipelineResponse {
 
 // RaftService implements the raft pipelining receiver.
 service TelegraftRaftService {
-  // AppendEntriesPipeline opens an AppendEntries message stream.
-  rpc AppendEntriesPipeline(stream AppendEntriesRequest) returns (stream AppendEntriesPipelineResponse) {}
+
   // AppendEntries performs a single append entries request / response.
   rpc AppendEntries(AppendEntriesRequest) returns (AppendEntriesResponse) {}
   // RequestVote is the command used by a candidate to ask a Raft peer for a vote in an election.

@@ -31,19 +31,33 @@ object DatabaseRepository {
   }
 
   def createUserChat(userId: String, chatId: String): DBIO[Done] = ???
+
+  private def getUserChatsQuery(userId: String)
+      : Query[DatabaseRepository.chatRepo.ChatTable, Chat, Seq] = {
+    userChatRepo.userChatTable
+      .filter(_.userId === userId)
+      .join(chatRepo.chatTable)
+      .on(_.userId === _.id)
+      .map(_._2)
+  }
+
   def getUserChats(userId: String): Future[Seq[Chat]] = {
 
     dbConfig.db.run {
-      userChatRepo.userChatTable
-        .filter(_.userId === userId)
-        .join(chatRepo.chatTable)
-        .on(_.userId === _.id)
-        .map(_._2)
-        .result
+      getUserChatsQuery(userId).result
     }
   }
 
   def getMessagesAfterTimestamp(
       userId: String,
-      timestamp: Instant): Future[Seq[Message]] = ???
+      timestamp: Instant): Future[Seq[Message]] =
+    dbConfig.db.run {
+      getUserChatsQuery(userId)
+        .join(messageRepo.messageTable)
+        .on(_.id === _.chatId)
+        .filter(_._2.timestamp >= timestamp)
+        .map(_._2)
+        .result
+    }
+
 }

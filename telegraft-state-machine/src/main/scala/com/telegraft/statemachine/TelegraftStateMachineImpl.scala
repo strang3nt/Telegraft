@@ -1,21 +1,14 @@
 package com.telegraft.statemachine
 
-import akka.Done
-
-import scala.concurrent.{ ExecutionContextExecutor, Future, TimeoutException }
+import scala.concurrent.{ ExecutionContextExecutor, Future }
 import akka.actor.typed.ActorSystem
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
-import akka.grpc.GrpcServiceException
-import akka.pattern.StatusReply
 import akka.util.Timeout
 import com.telegraft.statemachine.persistence.{ PersistentChat, PersistentUser }
 import org.slf4j.LoggerFactory
 import com.telegraft.statemachine.database.DatabaseRepository
-import com.telegraft.statemachine.persistence.PersistentChat.{ Chat, Message }
-import io.grpc.Status
 
 import java.time.Instant
-import scala.util.Success
 
 class TelegraftStateMachineImpl(system: ActorSystem[_])
     extends proto.TelegraftStateMachineService {
@@ -33,71 +26,63 @@ class TelegraftStateMachineImpl(system: ActorSystem[_])
       in: proto.CreateUserRequest): Future[proto.CreateUserResponse] = {
 
     val id = java.util.UUID.randomUUID
-    val entity = sharding.entityRefFor(PersistentUser.EntityKey, id.toString)
-    entity
+    sharding
+      .entityRefFor(PersistentUser.EntityKey, id.toString)
       .askWithStatus(PersistentUser.CreateUser(in.username, _))
       .map(user => proto.CreateUserResponse(ok = true, user.userId))
-      .recover(x =>
-        proto.CreateUserResponse(ok = false, "", Some(x.getMessage)))
+      .recover(err =>
+        proto.CreateUserResponse(ok = false, "", Some(err.getMessage)))
 
   }
 
   def sendMessage(
       in: proto.SendMessageRequest): Future[proto.SendMessageResponse] = {
-    val entity = sharding.entityRefFor(PersistentChat.EntityKey, in.chatId)
-    entity
-      .ask(
+    sharding
+      .entityRefFor(PersistentChat.EntityKey, in.chatId)
+      .askWithStatus(
         PersistentChat.SendMessageTo(
           in.userId,
           in.chatId,
           in.content,
           Instant.ofEpochSecond(in.getTimestamp.seconds, in.getTimestamp.nanos),
           _))
-      .map {
-        case StatusReply.Success(msg: Message) =>
-          proto.SendMessageResponse(
-            ok = true,
-            Some(
-              proto.Message(
-                msg.sender,
-                in.chatId,
-                msg.content,
-                Some(com.google.protobuf.timestamp.Timestamp
-                  .of(msg.timestamp.getEpochSecond, msg.timestamp.getNano)))))
-        case StatusReply.Error(msg) =>
-          proto.SendMessageResponse(ok = false, None, Some(msg.getMessage))
-      }
+      .map(msg =>
+        proto.SendMessageResponse(
+          ok = true,
+          Some(
+            proto.Message(
+              msg.sender,
+              in.chatId,
+              msg.content,
+              Some(com.google.protobuf.timestamp.Timestamp
+                .of(msg.timestamp.getEpochSecond, msg.timestamp.getNano))))))
+      .recover(err =>
+        proto.SendMessageResponse(ok = false, None, Some(err.getMessage)))
   }
   def createChat(
       in: proto.CreateChatRequest): Future[proto.CreateChatResponse] = {
 
     val id = java.util.UUID.randomUUID
-
-    val entity = sharding.entityRefFor(PersistentChat.EntityKey, id.toString)
-    entity
-      .ask(
-        PersistentChat
-          .CreateChat(in.chatName, in.userId, in.chatDescription, _))
-      .map {
-        case StatusReply.Success(chat: Chat) =>
-          proto.CreateChatResponse(ok = true, chat.id)
-        case StatusReply.Error(msg) =>
-          proto.CreateChatResponse(ok = false, "", Some(msg.getMessage))
-      }
-
+    sharding
+      .entityRefFor(PersistentChat.EntityKey, id.toString)
+      .askWithStatus(PersistentChat
+        .CreateChat(in.chatName, in.userId, in.chatDescription, _))
+      .map(chat => proto.CreateChatResponse(ok = true, chat.id))
+      .recover(err =>
+        proto.CreateChatResponse(ok = false, "", Some(err.getMessage)))
   }
+
   def joinChat(in: proto.JoinChatRequest): Future[proto.JoinChatResponse] = {
-    val entity = sharding.entityRefFor(PersistentChat.EntityKey, in.chatId)
-
-    entity.ask(PersistentChat.JoinChat(in.chatId, in.userId, _)).map {
-      case StatusReply.Success(_: Done) => proto.JoinChatResponse(ok = true)
-      case StatusReply.Error(msg) =>
-        proto.JoinChatResponse(ok = false, Some(msg.getMessage))
-    }
+    sharding
+      .entityRefFor(PersistentChat.EntityKey, in.chatId)
+      .askWithStatus(PersistentChat.JoinChat(in.chatId, in.userId, _))
+      .map(_ => proto.JoinChatResponse(ok = true))
+      .recover(err => proto.JoinChatResponse(ok = false, Some(err.getMessage)))
   }
+
   def getMessages(
       in: proto.GetMessagesRequest): Future[proto.GetMessagesResponse] = {
-    // TODO
+
     DatabaseRepository
       .getMessagesAfterTimestamp(
         in.userId,
