@@ -1,6 +1,6 @@
 services:
   app:
-    image: telegraft-state-machine:latest
+    image: telegraft-statemachine-service:latest
     restart: always
     depends_on:
       - db

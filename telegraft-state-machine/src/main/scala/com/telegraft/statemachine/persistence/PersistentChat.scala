@@ -1,16 +1,26 @@
 package com.telegraft.statemachine.persistence
 
 import akka.Done
-import akka.actor.typed.{ActorRef, ActorSystem, Behavior, SupervisorStrategy}
+import akka.actor.typed.{ ActorRef, ActorSystem, Behavior, SupervisorStrategy }
 import akka.cluster.sharding.typed.ShardingEnvelope
-import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity, EntityContext, EntityTypeKey}
+import akka.cluster.sharding.typed.scaladsl.{
+  ClusterSharding,
+  Entity,
+  EntityContext,
+  EntityTypeKey
+}
 import akka.pattern.StatusReply
 import akka.persistence.typed.PersistenceId
-import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, ReplyEffect, RetentionCriteria}
+import akka.persistence.typed.scaladsl.{
+  Effect,
+  EventSourcedBehavior,
+  ReplyEffect,
+  RetentionCriteria
+}
 import com.telegraft.statemachine.CborSerializable
 
 import java.time.Instant
-import scala.collection.immutable.{List, Vector}
+import scala.collection.immutable.{ List, Vector }
 import scala.concurrent.duration.DurationInt
 
 object PersistentChat {
@@ -30,11 +40,13 @@ object PersistentChat {
     ClusterSharding(system).init(Entity(EntityKey)(behaviorFactory))
   }
   final case class Message(
-      sender: String,
+      userId: String,
+      chatId: String,
       content: String,
       timestamp: Instant)
+      extends CborSerializable
 
-  sealed trait Command
+  sealed trait Command extends CborSerializable
   final case class CreateChat(
       name: String,
       creator: String,
@@ -69,10 +81,10 @@ object PersistentChat {
   object Chat {
     val empty: Chat = Chat("", "", "", Set.empty[String], List.empty)
   }
-  sealed trait Event
+  sealed trait Event extends CborSerializable
   final case class MessageAdded(msg: Message) extends Event
-  final case class ChatCreated(c: Chat) extends Event
-  final case class ChatJoined(userId: String) extends Event
+  final case class ChatCreated(c: Chat, userId: String) extends Event
+  final case class ChatJoined(chatId: String, userId: String) extends Event
 
   private def apply(
       persistentChatId: String,
@@ -100,16 +112,12 @@ object PersistentChat {
         Effect
           .persist(
             ChatCreated(
-              Chat(
-                chatId,
-                name,
-                description,
-                state.members + creator,
-                state.messages)))
+              Chat(chatId, name, description, state.members, state.messages),
+              creator))
           .thenReply(replyTo)(StatusReply.Success(_))
 
       case SendMessageTo(sender, receiver, content, timestamp, replyTo) =>
-        val msg = Message(sender, content, timestamp)
+        val msg = Message(sender, chatId, content, timestamp)
         if (receiver == state.id)
           Effect
             .persist(MessageAdded(msg))
@@ -122,7 +130,7 @@ object PersistentChat {
       case JoinChat(chatId, userId, replyTo) =>
         if (chatId == state.id)
           Effect
-            .persist(ChatJoined(userId))
+            .persist(ChatJoined(chatId, userId))
             .thenReply(replyTo)(_ => StatusReply.ack())
         else
           Effect.reply(replyTo)(StatusReply.Error(new RuntimeException(
@@ -131,9 +139,9 @@ object PersistentChat {
   }
   private def handleEvent(chat: Chat, event: Event): Chat = {
     event match {
-      case MessageAdded(msg)  => chat.addMessage(msg)
-      case ChatCreated(c)     => c
-      case ChatJoined(userId) => chat.addUser(userId)
+      case MessageAdded(msg)      => chat.addMessage(msg)
+      case ChatCreated(c, userId) => c.addUser(userId)
+      case ChatJoined(_, userId)  => chat.addUser(userId)
     }
   }
 

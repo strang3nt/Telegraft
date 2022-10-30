@@ -30,8 +30,6 @@ object DatabaseRepository {
       .transactionally
   }
 
-  def createUserChat(userId: String, chatId: String): DBIO[Done] = ???
-
   private def getUserChatsQuery(userId: String)
       : Query[DatabaseRepository.chatRepo.ChatTable, Chat, Seq] = {
     userChatRepo.userChatTable
@@ -40,6 +38,17 @@ object DatabaseRepository {
       .on(_.userId === _.id)
       .map(_._2)
   }
+
+  def createChatWithUser(
+      chatId: String,
+      chatName: String,
+      userId: String): DBIO[Done] =
+    DBIO
+      .seq(
+        chatRepo.createChat(Chat(chatId, chatName)),
+        userChatRepo.createUserChat(chatId, userId))
+      .transactionally
+      .map(_ => Done)
 
   def getUserChats(userId: String): Future[Seq[Chat]] = {
 

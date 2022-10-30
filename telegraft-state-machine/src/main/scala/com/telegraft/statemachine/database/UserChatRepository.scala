@@ -22,19 +22,19 @@ class UserChatRepository(
     def chatId = column[String]("chat_id")
     def user = foreignKey("customer_id_fk", userId, users.userTable)(
       _.id,
-      onUpdate = ForeignKeyAction.Restrict,
+      onUpdate = ForeignKeyAction.Cascade,
       onDelete = ForeignKeyAction.Cascade)
     def chat = foreignKey("chat_id_fk", chatId, chats.chatTable)(
       _.id,
-      onUpdate = ForeignKeyAction.Restrict,
+      onUpdate = ForeignKeyAction.Cascade,
       onDelete = ForeignKeyAction.Cascade)
     override def * = (userId, chatId).mapTo[UserChat]
   }
 
   private[database] lazy val userChatTable = TableQuery[UserChatTable]
 
-  def createUserChat(r: UserChat): DBIO[Done] =
-    (userChatTable += r).map(_ => Done)
+  def createUserChat(userId: String, chatId: String): DBIO[Done] =
+    (userChatTable += UserChat(userId, chatId)).map(_ => Done).transactionally
 
   def deleteUserChat(r: UserChat): DBIO[Done] = {
     val q =

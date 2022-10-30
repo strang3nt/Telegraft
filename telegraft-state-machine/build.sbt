@@ -20,11 +20,14 @@ Test / logBuffered := false
 run / fork := false
 Global / cancelable := false // ctrl-c
 
-val AkkaVersion = "2.6.20"
-val AkkaHttpVersion = "10.2.10"
-val AkkaManagementVersion = "1.1.4"
-val AkkaPersistenceJdbcVersion = "5.1.0"
-val AkkaProjectionVersion = "1.2.5"
+val AkkaVersion = "2.7.0"
+val AkkaHttpVersion = "10.4.0"
+val AkkaManagementVersion = "1.2.0"
+val AkkaPersistenceJdbcVersion = "5.2.0"
+val AkkaProjectionVersion = "1.3.0"
+val LogBackVersion = "1.4.4"
+val ScalaTestVersion = "3.2.14"
+val PostgresqlVersion = "42.5.0"
 
 enablePlugins(AkkaGrpcPlugin, JavaAppPackaging, DockerPlugin, UniversalPlugin)
 
@@ -57,8 +60,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-discovery" % AkkaVersion,
   // Common dependencies for logging and testing
   "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion,
-  "ch.qos.logback" % "logback-classic" % "1.2.9",
-  "org.scalatest" %% "scalatest" % "3.1.2" % Test,
+  "ch.qos.logback" % "logback-classic" % LogBackVersion,
+  "org.scalatest" %% "scalatest" % ScalaTestVersion % Test,
   // 2. Using gRPC and/or protobuf
   "com.typesafe.akka" %% "akka-http2-support" % AkkaHttpVersion,
   // 3. Using Akka Persistence
@@ -66,7 +69,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-serialization-jackson" % AkkaVersion,
   "com.lightbend.akka" %% "akka-persistence-jdbc" % AkkaPersistenceJdbcVersion,
   "com.typesafe.akka" %% "akka-persistence-testkit" % AkkaVersion % Test,
-  "org.postgresql" % "postgresql" % "42.2.18",
+  "org.postgresql" % "postgresql" % PostgresqlVersion,
   // 4. Querying or projecting data from Akka Persistence
   "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion,
   "com.lightbend.akka" %% "akka-projection-eventsourced" % AkkaProjectionVersion,

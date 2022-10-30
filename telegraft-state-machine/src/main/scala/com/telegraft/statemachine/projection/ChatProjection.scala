@@ -9,16 +9,16 @@ import akka.projection.eventsourced.EventEnvelope
 import akka.projection.eventsourced.scaladsl.EventSourcedProvider
 import akka.projection.scaladsl.ExactlyOnceProjection
 import akka.projection.slick.SlickProjection
-import akka.projection.{ ProjectionBehavior, ProjectionId }
+import akka.projection.{ProjectionBehavior, ProjectionId}
 import com.telegraft.statemachine.database.Connection
-import com.telegraft.statemachine.persistence.PersistentUser
+import com.telegraft.statemachine.persistence.PersistentChat
 
-object UserProjection {
+object ChatProjection {
 
   def init(system: ActorSystem[_]): Unit = {
     ShardedDaemonProcess(system).init(
-      name = "PersistentUserProjection",
-      PersistentUser.tags.size,
+      name = "PersistentChatProjection",
+      PersistentChat.tags.size,
       index =>
         ProjectionBehavior(createProjectionFor(system, index)),
       ShardedDaemonProcessSettings(system),
@@ -26,24 +26,24 @@ object UserProjection {
   }
 
   private def createProjectionFor(
-      system: ActorSystem[_],
-      index: Int)
-      : ExactlyOnceProjection[Offset, EventEnvelope[PersistentUser.Event]] = {
+                                   system: ActorSystem[_],
+                                   index: Int)
+  : ExactlyOnceProjection[Offset, EventEnvelope[PersistentChat.Event]] = {
 
     implicit val sys: ActorSystem[_] = system
-    val tag = PersistentUser.tags(index)
+    val tag = PersistentChat.tags(index)
 
     val sourceProvider =
-      EventSourcedProvider.eventsByTag[PersistentUser.Event](
+      EventSourcedProvider.eventsByTag[PersistentChat.Event](
         system = system,
         readJournalPluginId = JdbcReadJournal.Identifier,
         tag = tag)
 
     SlickProjection.exactlyOnce(
-      projectionId = ProjectionId("PersistentUserProjection", tag),
+      projectionId = ProjectionId("PersistentChatProjection", tag),
       sourceProvider,
       Connection.dbConfig,
-      handler = () => new UserProjectionHandler())
+      handler = () => new ChatProjectionHandler())
 
   }
 

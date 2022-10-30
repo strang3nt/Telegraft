@@ -37,6 +37,7 @@ object PersistentUser {
   }
 
   final case class User(userId: String, userName: String)
+      extends CborSerializable
 
   sealed trait Command extends CborSerializable
 

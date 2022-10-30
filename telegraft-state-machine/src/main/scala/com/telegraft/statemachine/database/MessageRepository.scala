@@ -24,26 +24,39 @@ class MessageRepository(
       extends Table[Message](tag, "message") {
 
     def timestamp = column[Instant]("sent_time", O.Default(Instant.now()))
-    def user = foreignKey("customer_id_fk", userId, users.userTable)(
-      _.id,
-      onUpdate = ForeignKeyAction.Restrict,
-      onDelete = ForeignKeyAction.Cascade)
+
     def userId = column[String]("customer_id")
+    def chatId = column[String]("chat_id")
+
+    def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
+
+    def content = column[String]("content")
     def chat = foreignKey("chat_id_fk", chatId, chats.chatTable)(
       _.id,
-      onUpdate = ForeignKeyAction.Restrict,
+      onUpdate = ForeignKeyAction.Cascade,
       onDelete = ForeignKeyAction.Cascade)
-    def chatId = column[String]("chat_id")
+
+    def user = foreignKey("customer_id_fk", userId, users.userTable)(
+      _.id,
+      onUpdate = ForeignKeyAction.Cascade,
+      onDelete = ForeignKeyAction.Cascade)
+
     override def * =
       (id, userId, chatId, content, timestamp).mapTo[Message]
-    def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
-    def content = column[String]("content")
+
   }
 
-  def createMessage(r: Message): DBIO[Done] = (messageTable += r).map(_ => Done)
+  def createMessage(
+      userId: String,
+      chatId: String,
+      content: String,
+      timestamp: Instant): DBIO[Done] =
+    (messageTable += Message(0, userId, chatId, content, timestamp))
+      .map(_ => Done)
+      .transactionally
 
-  def deleteMessage(r: Message): DBIO[Done] = {
-    val q = messageTable.filter(_.id === r.id)
+  def deleteMessage(messageId: Long): DBIO[Done] = {
+    val q = messageTable.filter(_.id === messageId)
     q.delete.map(_ => Done)
   }
 

@@ -51,7 +51,7 @@ class TelegraftStateMachineImpl(system: ActorSystem[_])
           ok = true,
           Some(
             proto.Message(
-              msg.sender,
+              msg.userId,
               in.chatId,
               msg.content,
               Some(com.google.protobuf.timestamp.Timestamp
@@ -59,6 +59,7 @@ class TelegraftStateMachineImpl(system: ActorSystem[_])
       .recover(err =>
         proto.SendMessageResponse(ok = false, None, Some(err.getMessage)))
   }
+
   def createChat(
       in: proto.CreateChatRequest): Future[proto.CreateChatResponse] = {
 

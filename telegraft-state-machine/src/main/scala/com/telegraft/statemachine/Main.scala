@@ -4,8 +4,8 @@ import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import com.telegraft.statemachine.database.DatabaseRepository
-import com.telegraft.statemachine.persistence.{ PersistentChat, PersistentUser }
-import com.telegraft.statemachine.projection.UserProjection
+import com.telegraft.statemachine.persistence.{PersistentChat, PersistentUser}
+import com.telegraft.statemachine.projection.{ChatProjection, UserProjection}
 import akka.management.scaladsl.AkkaManagement
 import org.slf4j.LoggerFactory
 
@@ -36,7 +36,9 @@ object Main {
 
     PersistentUser.init(system)
     PersistentChat.init(system)
+
     UserProjection.init(system)
+    ChatProjection.init(system)
 
     val grpcInterface =
       system.settings.config
