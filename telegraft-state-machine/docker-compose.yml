@@ -3,16 +3,28 @@ services:
     image: telegraft-statemachine-service:latest
     restart: always
     depends_on:
-      - db
+      - postgres-db
     environment:
       DB_NAME: telegraft
       DB_USER: postgresuser
       DB_PASS: password
-      DB_SERVER: db
+      DB_SERVER: postgres-db
       DB_PORT: 5432
     ports:
       - "8301:8301"
-  db:
+  postgres-db:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgresuser
+      POSTGRES_DB: telegraft
+#    ports:
+#      - "5432:5432"
+    volumes:
+      - ./src/main/resources/db:/docker-entrypoint-initdb.d
+
+  postgres-db-test:
     image: postgres:latest
     restart: always
     environment:
@@ -20,8 +32,6 @@ services:
       POSTGRES_USER: postgresuser
       POSTGRES_DB: telegraft
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - type: bind
-        source: ./src/main/resources/db/telegraft.sql
-        target: /docker-entrypoint-initdb.d/telegraft.sql
+      - ./src/main/resources/db:/docker-entrypoint-initdb.d

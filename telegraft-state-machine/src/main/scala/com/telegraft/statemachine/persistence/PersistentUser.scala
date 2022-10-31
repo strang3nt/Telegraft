@@ -49,7 +49,7 @@ object PersistentUser {
   sealed trait Event extends CborSerializable
   final case class UserCreated(userId: String, userName: String) extends Event
 
-  private def apply(
+  def apply(
       persistentUserId: String,
       projectionTag: String): Behavior[Command] = {
     EventSourcedBehavior
