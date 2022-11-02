@@ -9,26 +9,27 @@ import akka.projection.eventsourced.EventEnvelope
 import akka.projection.eventsourced.scaladsl.EventSourcedProvider
 import akka.projection.scaladsl.ExactlyOnceProjection
 import akka.projection.slick.SlickProjection
-import akka.projection.{ProjectionBehavior, ProjectionId}
-import com.telegraft.statemachine.database.Connection
+import akka.projection.{ ProjectionBehavior, ProjectionId }
+import com.telegraft.statemachine.database.{ Connection, DatabaseRepository }
 import com.telegraft.statemachine.persistence.PersistentChat
 
 object ChatProjection {
 
-  def init(system: ActorSystem[_]): Unit = {
+  def init(system: ActorSystem[_], repository: DatabaseRepository): Unit = {
     ShardedDaemonProcess(system).init(
       name = "PersistentChatProjection",
       PersistentChat.tags.size,
       index =>
-        ProjectionBehavior(createProjectionFor(system, index)),
+        ProjectionBehavior(createProjectionFor(system, repository, index)),
       ShardedDaemonProcessSettings(system),
       Some(ProjectionBehavior.Stop))
   }
 
   private def createProjectionFor(
-                                   system: ActorSystem[_],
-                                   index: Int)
-  : ExactlyOnceProjection[Offset, EventEnvelope[PersistentChat.Event]] = {
+      system: ActorSystem[_],
+      repository: DatabaseRepository,
+      index: Int)
+      : ExactlyOnceProjection[Offset, EventEnvelope[PersistentChat.Event]] = {
 
     implicit val sys: ActorSystem[_] = system
     val tag = PersistentChat.tags(index)
@@ -43,7 +44,7 @@ object ChatProjection {
       projectionId = ProjectionId("PersistentChatProjection", tag),
       sourceProvider,
       Connection.dbConfig,
-      handler = () => new ChatProjectionHandler())
+      handler = () => new ChatProjectionHandler(repository))
 
   }
 

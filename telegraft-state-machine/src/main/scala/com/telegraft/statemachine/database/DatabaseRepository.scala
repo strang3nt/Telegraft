@@ -8,19 +8,53 @@ import slick.jdbc.PostgresProfile.api._
 import java.time.Instant
 import scala.concurrent.{ ExecutionContext, Future }
 
-object DatabaseRepository {
+trait DatabaseRepository {
 
-  private val dbConfig: DatabaseConfig[PostgresProfile] = Connection.dbConfig
+  val chatRepo: ChatRepository
+  val userRepo: UserRepository
+  val messageRepo: MessageRepository
+  val userChatRepo: UserChatRepository
+
+  def createTables: Future[Unit]
+  def createChatWithUser(
+      chatId: String,
+      chatName: String,
+      userId: String): DBIO[Done]
+  def getUserChats(userId: String): Future[Seq[Chat]]
+
+  def getMessagesAfterTimestamp(
+      userId: String,
+      timestamp: Instant): Future[Seq[Message]]
+}
+
+object DatabaseRepositoryImpl {
+
+  import ExecutionContext.Implicits.global
+  def init: DatabaseRepository = {
+
+    val chatRepo = new ChatRepository(Connection.dbConfig)
+    val userRepo = new UserRepository(Connection.dbConfig)
+    val messageRepo =
+      new MessageRepository(Connection.dbConfig, chatRepo, userRepo)
+    val userChatRepo =
+      new UserChatRepository(Connection.dbConfig, chatRepo, userRepo)
+
+    val databaseRepo =
+      new DatabaseRepositoryImpl(chatRepo, userRepo, messageRepo, userChatRepo)
+    databaseRepo.createTables
+    databaseRepo
+  }
+}
+class DatabaseRepositoryImpl(
+    val chatRepo: ChatRepository,
+    val userRepo: UserRepository,
+    val messageRepo: MessageRepository,
+    val userChatRepo: UserChatRepository)
+    extends DatabaseRepository {
+
   import ExecutionContext.Implicits.global
 
-  val chatRepo = new ChatRepository(dbConfig)
-  val userRepo = new UserRepository(dbConfig)
-  val messageRepo =
-    new MessageRepository(dbConfig, chatRepo, userRepo)
-  val userChatRepo =
-    new UserChatRepository(dbConfig, chatRepo, userRepo)
-
-  def createTable: Future[Unit] = dbConfig.db.run {
+  override def createTables: Future[Unit] = Connection.dbConfig.db.run {
     DBIO
       .seq(
         chatRepo.chatTable.schema.createIfNotExists,
@@ -30,8 +64,7 @@ object DatabaseRepository {
       .transactionally
   }
 
-  private def getUserChatsQuery(userId: String)
-      : Query[DatabaseRepository.chatRepo.ChatTable, Chat, Seq] = {
+  private def getUserChatsQuery(userId: String) = {
     userChatRepo.userChatTable
       .filter(_.userId === userId)
       .join(chatRepo.chatTable)
@@ -52,15 +85,15 @@ object DatabaseRepository {
 
   def getUserChats(userId: String): Future[Seq[Chat]] = {
 
-    dbConfig.db.run {
+    Connection.dbConfig.db.run {
       getUserChatsQuery(userId).result
     }
   }
 
-  def getMessagesAfterTimestamp(
+  override def getMessagesAfterTimestamp(
       userId: String,
       timestamp: Instant): Future[Seq[Message]] =
-    dbConfig.db.run {
+    Connection.dbConfig.db.run {
       getUserChatsQuery(userId)
         .join(messageRepo.messageTable)
         .on(_.id === _.chatId)
@@ -68,5 +101,4 @@ object DatabaseRepository {
         .map(_._2)
         .result
     }
-
 }

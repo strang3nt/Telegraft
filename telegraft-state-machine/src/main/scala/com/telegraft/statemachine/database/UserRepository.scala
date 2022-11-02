@@ -4,10 +4,7 @@ import akka.Done
 import slick.basic.DatabaseConfig
 import slick.jdbc.PostgresProfile
 import slick.jdbc.PostgresProfile.api._
-
 import scala.concurrent.{ ExecutionContext, Future }
-
-object User {}
 final case class User(id: String, userName: String)
 
 class UserRepository(val dbConfig: DatabaseConfig[PostgresProfile])(

@@ -13,7 +13,7 @@ import com.telegraft.statemachine.persistence.PersistentChat.{
 import org.slf4j.LoggerFactory
 import slick.dbio.DBIO
 
-class ChatProjectionHandler()
+class ChatProjectionHandler(repository: DatabaseRepository)
     extends SlickHandler[EventEnvelope[PersistentChat.Event]] {
 
   private val logger = LoggerFactory.getLogger(getClass)
@@ -22,15 +22,15 @@ class ChatProjectionHandler()
       envelope: EventEnvelope[PersistentChat.Event]): DBIO[Done] = {
     envelope.event match {
       case MessageAdded(msg) =>
-        DatabaseRepository.messageRepo.createMessage(
+        repository.messageRepo.createMessage(
           msg.userId,
           msg.chatId,
           msg.content,
           msg.timestamp)
       case ChatCreated(chat, userId) =>
-        DatabaseRepository.createChatWithUser(chat.id, chat.name, userId)
+        repository.createChatWithUser(chat.id, chat.name, userId)
       case ChatJoined(chatId, userId) =>
-        DatabaseRepository.userChatRepo.createUserChat(userId, chatId)
+        repository.userChatRepo.createUserChat(userId, chatId)
     }
   }
 }

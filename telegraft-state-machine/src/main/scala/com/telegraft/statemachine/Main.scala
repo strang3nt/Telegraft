@@ -3,9 +3,9 @@ package com.telegraft.statemachine
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.management.cluster.bootstrap.ClusterBootstrap
-import com.telegraft.statemachine.database.DatabaseRepository
-import com.telegraft.statemachine.persistence.{PersistentChat, PersistentUser}
-import com.telegraft.statemachine.projection.{ChatProjection, UserProjection}
+import com.telegraft.statemachine.database.DatabaseRepositoryImpl
+import com.telegraft.statemachine.persistence.{ PersistentChat, PersistentUser }
+import com.telegraft.statemachine.projection.{ ChatProjection, UserProjection }
 import akka.management.scaladsl.AkkaManagement
 import org.slf4j.LoggerFactory
 
@@ -32,20 +32,20 @@ object Main {
     AkkaManagement(system).start()
     ClusterBootstrap(system).start()
 
-    DatabaseRepository.createTable
+    val repository = DatabaseRepositoryImpl.init
 
     PersistentUser.init(system)
     PersistentChat.init(system)
 
-    UserProjection.init(system)
-    ChatProjection.init(system)
+    UserProjection.init(system, repository)
+    ChatProjection.init(system, repository)
 
     val grpcInterface =
       system.settings.config
         .getString("telegraft-statemachine-service.grpc.interface")
     val grpcPort =
       system.settings.config.getInt("telegraft-statemachine-service.grpc.port")
-    val grpcService = new TelegraftStateMachineImpl(system)
+    val grpcService = new TelegraftStateMachineImpl(system, repository)
     TelegraftStateMachineServer.start(
       grpcInterface,
       grpcPort,

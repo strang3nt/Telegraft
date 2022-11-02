@@ -10,7 +10,7 @@ import com.telegraft.statemachine.database.DatabaseRepository
 
 import java.time.Instant
 
-class TelegraftStateMachineImpl(system: ActorSystem[_])
+class TelegraftStateMachineImpl(system: ActorSystem[_], repository: DatabaseRepository)
     extends proto.TelegraftStateMachineService {
 
   private val logger = LoggerFactory.getLogger(getClass)
@@ -84,7 +84,7 @@ class TelegraftStateMachineImpl(system: ActorSystem[_])
   def getMessages(
       in: proto.GetMessagesRequest): Future[proto.GetMessagesResponse] = {
 
-    DatabaseRepository
+    repository
       .getMessagesAfterTimestamp(
         in.userId,
         Instant.ofEpochSecond(

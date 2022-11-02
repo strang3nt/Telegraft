@@ -16,6 +16,8 @@ Compile / javacOptions ++= Seq("-Xlint:unchecked", "-Xlint:deprecation")
 Test / parallelExecution := false
 Test / testOptions += Tests.Argument("-oDF")
 Test / logBuffered := false
+Test / javaOptions += s"-Dconfig.file=${sourceDirectory.value}/test/resources/application-test.conf"
+Test / fork := true
 
 run / fork := false
 Global / cancelable := false // ctrl-c
@@ -29,19 +31,19 @@ val LogBackVersion = "1.4.4"
 val ScalaTestVersion = "3.2.14"
 val PostgresqlVersion = "42.5.0"
 
-enablePlugins(AkkaGrpcPlugin, JavaAppPackaging, DockerPlugin, UniversalPlugin)
-
-import com.typesafe.sbt.packager.docker.{ Cmd, ExecCmd }
+enablePlugins(
+  AshScriptPlugin,
+  AkkaGrpcPlugin,
+  JavaAppPackaging,
+  DockerPlugin,
+  UniversalPlugin)
 
 Universal / javaOptions += "-Dconfig.resource=local.conf"
 dockerUpdateLatest := true
-dockerBaseImage := "eclipse-temurin:17-jdk-alpine"
+dockerBaseImage := "eclipse-temurin:17-jre-alpine"
 dockerUsername := sys.props.get("docker.username")
 dockerRepository := sys.props.get("docker.registry")
 ThisBuild / dynverSeparator := "-"
-dockerCommands ++= Seq(
-  Cmd("USER", "root"),
-  ExecCmd("RUN", "apk", "add", "bash"))
 
 libraryDependencies ++= Seq(
   // 1. Basic dependencies for a clustered application

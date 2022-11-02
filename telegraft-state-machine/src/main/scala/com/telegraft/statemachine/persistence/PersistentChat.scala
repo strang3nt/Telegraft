@@ -86,7 +86,7 @@ object PersistentChat {
   final case class ChatCreated(c: Chat, userId: String) extends Event
   final case class ChatJoined(chatId: String, userId: String) extends Event
 
-  private def apply(
+  def apply(
       persistentChatId: String,
       projectionTag: String): Behavior[Command] = {
     EventSourcedBehavior
