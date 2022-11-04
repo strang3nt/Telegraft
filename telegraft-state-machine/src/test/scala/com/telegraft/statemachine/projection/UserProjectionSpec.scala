@@ -1,82 +1,21 @@
 package com.telegraft.statemachine.projection
 
-import java.time.Instant
-import scala.concurrent.{ ExecutionContext, Future }
 import akka.Done
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.persistence.query.Offset
 import akka.projection.ProjectionId
 import akka.projection.eventsourced.EventEnvelope
 import akka.projection.scaladsl.Handler
-import akka.projection.testkit.scaladsl.{
-  ProjectionTestKit,
-  TestProjection,
-  TestSourceProvider
-}
+import akka.projection.testkit.scaladsl.{ProjectionTestKit, TestProjection, TestSourceProvider}
 import akka.stream.scaladsl.Source
-import com.telegraft.statemachine.database.{
-  Chat,
-  ChatRepository,
-  Connection,
-  DatabaseRepository,
-  Message,
-  MessageRepository,
-  UserChatRepository,
-  UserRepository
-}
 import com.telegraft.statemachine.persistence.PersistentUser
 import org.scalatest.wordspec.AnyWordSpecLike
-import slick.basic.DatabaseConfig
-import slick.dbio.DBIO
-import slick.jdbc.PostgresProfile
 
-object UserProjectionSpec {
-
-  // stub out the db layer and simulate new users added
-  class TestUserRepository(
-      override val dbConfig: DatabaseConfig[PostgresProfile])(
-      implicit ex: ExecutionContext)
-      extends UserRepository(dbConfig) {
-
-    var users = Map.empty[String, String]
-
-    override def createUser(userId: String, userName: String): DBIO[Done] = {
-      users += userId -> userName
-      DBIO.successful(Done)
-    }
-  }
-  class TestDatabaseRepository(override val userRepo: TestUserRepository)(
-      implicit ex: ExecutionContext)
-      extends DatabaseRepository {
-
-    override val chatRepo: ChatRepository = new ChatRepository(
-      Connection.dbConfig)
-    override val messageRepo: MessageRepository =
-      new MessageRepository(Connection.dbConfig, chatRepo, userRepo)
-    override val userChatRepo: UserChatRepository =
-      new UserChatRepository(Connection.dbConfig, chatRepo, userRepo)
-
-    override def createTables: Future[Unit] = Future.unit
-
-    override def createChatWithUser(
-        chatId: String,
-        chatName: String,
-        userId: String): _root_.slick.jdbc.PostgresProfile.api.DBIO[Done] =
-      DBIO.successful(Done)
-
-    override def getUserChats(userId: String): Future[Seq[Chat]] = Future(
-      Seq.empty[Chat])
-
-    override def getMessagesAfterTimestamp(
-        userId: String,
-        timestamp: Instant): Future[Seq[Message]] = Future(Seq.empty[Message])
-  }
-}
+import scala.concurrent.{ExecutionContext, Future}
 
 class UserProjectionSpec
     extends ScalaTestWithActorTestKit
     with AnyWordSpecLike {
-  import UserProjectionSpec.{ TestDatabaseRepository, TestUserRepository }
 
   private val projectionTestKit = ProjectionTestKit(system)
 
@@ -102,8 +41,6 @@ class UserProjectionSpec
 
   "The events from the PersistentUser" should {
 
-    import scala.concurrent.ExecutionContext.Implicits.global
-
     "create a new user by the projection" in {
 
       val events =
@@ -116,8 +53,7 @@ class UserProjectionSpec
               PersistentUser.UserCreated("userid_2", "Filippo"),
               1L)))
 
-      val repository =
-        new TestDatabaseRepository(new TestUserRepository(Connection.dbConfig))
+      val repository = TestDatabaseRepository.init
       val projectionId =
         ProjectionId("persistentUserTest", "users-0")
       val sourceProvider =
