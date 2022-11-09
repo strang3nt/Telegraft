@@ -1,6 +1,6 @@
 package com.telegraft.statemachine
 
-import scala.concurrent.{ ExecutionContextExecutor, Future }
+import scala.concurrent.{ ExecutionContext, Future }
 import akka.actor.typed.ActorSystem
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.util.Timeout
@@ -10,12 +10,14 @@ import com.telegraft.statemachine.database.DatabaseRepository
 
 import java.time.Instant
 
-class TelegraftStateMachineImpl(system: ActorSystem[_], repository: DatabaseRepository)
+class TelegraftStateMachineImpl(
+    system: ActorSystem[_],
+    repository: DatabaseRepository)
     extends proto.TelegraftStateMachineService {
 
   private val logger = LoggerFactory.getLogger(getClass)
   private val sharding = ClusterSharding(system)
-  private implicit val ec: ExecutionContextExecutor = system.executionContext
+  private implicit val ec: ExecutionContext = system.executionContext
 
   implicit private val timeout: Timeout =
     Timeout.create(

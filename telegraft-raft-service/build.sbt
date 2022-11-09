@@ -1,48 +1,49 @@
 name := "telegraft-raft-service"
 
-organization := "com.telegraft.rest"
+organization := "com.telegraft"
 
 scalaVersion := "2.13.10"
 
 Compile / scalacOptions ++= Seq(
-  "-target:17",
+  "-release:17",
   "-deprecation",
   "-feature",
   "-unchecked",
   "-Xlog-reflective-calls",
   "-Xlint")
-
 Compile / javacOptions ++= Seq("-Xlint:unchecked", "-Xlint:deprecation")
 
 Test / parallelExecution := false
 Test / testOptions += Tests.Argument("-oDF")
 Test / logBuffered := false
+Test / javaOptions += s"-Dconfig.file=${sourceDirectory.value}/test/resources/application-test.conf"
+Test / fork := true
 
 run / fork := false
 Global / cancelable := false // ctrl-c
 
-val AkkaVersion = "2.6.20"
-val AkkaHttpVersion = "10.2.10"
-val AkkaManagementVersion = "1.1.4"
-val AkkaPersistenceJdbcVersion = "5.1.0"
-val AkkaProjectionVersion = "1.2.5"
+val AkkaVersion = "2.7.0"
+val AkkaHttpVersion = "10.4.0"
+val AkkaManagementVersion = "1.2.0"
+val AkkaPersistenceJdbcVersion = "5.2.0"
+val AkkaProjectionVersion = "1.3.0"
 val LogBackVersion = "1.4.4"
 val ScalaTestVersion = "3.2.14"
 val PostgresqlVersion = "42.5.0"
 
-enablePlugins(AkkaGrpcPlugin, JavaAppPackaging, DockerPlugin, UniversalPlugin)
-
-import com.typesafe.sbt.packager.docker.{ Cmd, ExecCmd }
+enablePlugins(
+  AshScriptPlugin,
+  AkkaGrpcPlugin,
+  JavaAppPackaging,
+  DockerPlugin,
+  UniversalPlugin)
 
 Universal / javaOptions += "-Dconfig.resource=local.conf"
 dockerUpdateLatest := true
-dockerBaseImage := "eclipse-temurin:17-jdk-alpine"
+dockerBaseImage := "eclipse-temurin:17-jre-alpine"
 dockerUsername := sys.props.get("docker.username")
 dockerRepository := sys.props.get("docker.registry")
 ThisBuild / dynverSeparator := "-"
-dockerCommands ++= Seq(
-  Cmd("USER", "root"),
-  ExecCmd("RUN", "apk", "add", "bash"))
 
 libraryDependencies ++= Seq(
   // 1. Basic dependencies for a clustered application
@@ -75,4 +76,5 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion,
   "com.lightbend.akka" %% "akka-projection-eventsourced" % AkkaProjectionVersion,
   "com.lightbend.akka" %% "akka-projection-jdbc" % AkkaProjectionVersion,
+  "com.lightbend.akka" %% "akka-projection-slick" % AkkaProjectionVersion,
   "com.lightbend.akka" %% "akka-projection-testkit" % AkkaProjectionVersion % Test)

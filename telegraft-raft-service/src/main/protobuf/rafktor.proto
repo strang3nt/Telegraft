@@ -9,7 +9,6 @@ package com.telegraft.rafktor;
 
 message LogEntryPayload {
   oneof payload {
-
     statemachine.CreateUserRequest createUser = 1;
     statemachine.SendMessageRequest sendMessage = 2;
     statemachine.CreateChatRequest createChat = 3;
@@ -53,12 +52,8 @@ message AppendEntriesRequest {
 message AppendEntriesResponse {
   // Term is the newer term if the leader is out of date.
   uint64 term = 1;
-  // LastLog is a hint to help accelerate rebuilding slow nodes.
-  uint64 last_log = 2;
   // Success will be false if we have a conflicting entry.
-  bool success = 3;
-  // NoRetryBackoff indicates we don't need to backoff the next attempt.
-  bool no_retry_backoff = 4;
+  bool success = 2;
 
 }
 
@@ -82,10 +77,9 @@ message RequestVoteRequest {
 message RequestVoteResponse {
   // Term is the newer term if the leader is out of date.
   uint64 term = 1;
-  // Peers contains the current peers list so a node can shutdown on removal.
-  bytes peers = 2;
+
   // Granted if the vote was granted.
-  bool granted = 3;
+  bool granted = 2;
 
 }
 

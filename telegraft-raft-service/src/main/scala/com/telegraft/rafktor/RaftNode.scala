@@ -1,8 +1,8 @@
 package com.telegraft.rafktor
 
-import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.Behaviors
-import akka.persistence.typed.scaladsl.Effect
+import akka.actor.typed.{ ActorRef, Behavior }
+import akka.pattern.StatusReply
+import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior }
 
 object RaftNode {
 
@@ -44,35 +44,32 @@ object RaftNode {
       lastApplied: Long)
       extends State
 
-  sealed trait Command extends CborSerializable {
-    val term: Long
-  }
+  sealed trait Command extends CborSerializable
   final case class AppendEntries(
       term: Long,
       leaderId: Server,
       prevLogIndex: Long,
       prevLogTerm: Long,
       entries: Seq[Any],
-      leaderCommit: Long)
+      leaderCommit: Long,
+      replyTo: ActorRef[AppendEntriesResponse])
       extends Command
 
   final case class RequestVote(
       term: Long,
       candidateId: Server,
       lastLogIndex: Long,
-      lastLogTerm: Long)
+      lastLogTerm: Long,
+      replyTo: ActorRef[RequestVoteResponse])
       extends Command
 
-  /**
-   * @param term
-   *
-   * Message periodically sent to a Raft node, in order
-   * to advance to the next term.
-   */
-  private final case class NextTerm(term: Long) extends Command
+  // client requests for leader
+  final case class ClientRequest(
+      request: TelegraftRequest,
+      replyTo: ActorRef[StatusReply[TelegraftResponse]])
+      extends Command
 
   sealed trait Event
-  private final case object NextTermEvent extends Event
 
   final case class EntriesAppended(
       term: Long,
@@ -87,9 +84,7 @@ object RaftNode {
       lastLogIndex: Long)
       extends Event
 
-  sealed trait Response extends CborSerializable {
-    val term: Long
-  }
+  sealed trait Response extends CborSerializable
 
   final case class AppendEntriesResponse(term: Long, success: Boolean)
       extends Response
@@ -99,8 +94,94 @@ object RaftNode {
 
   // end protocol
 
-  private val commandHandler: (State, Command) => Effect[Event, State] = ???
+  private val commandHandler: (State, Command) => Effect[Event, State] =
+    (s, c) =>
+      s match {
+        case Follower(currentTerm, votedFor, log, commitIndex, lastApplied) =>
+          c match {
+            case AppendEntries(
+                  term,
+                  leaderId,
+                  prevLogIndex,
+                  prevLogTerm,
+                  entries,
+                  leaderCommit,
+                  replyTo) =>
+              ???
+            case RequestVote(
+                  term,
+                  candidateId,
+                  lastLogIndex,
+                  lastLogTerm,
+                  replyTo) =>
+              ???
+
+            // routes to leader, waits for response and sends it to client
+            case ClientRequest(request, replyTo) => ???
+          }
+        case Leader(
+              currentTerm,
+              votedFor,
+              log,
+              commitIndex,
+              lastApplied,
+              nextIndex,
+              maxIndex) =>
+          c match {
+            case AppendEntries(
+                  term,
+                  leaderId,
+                  prevLogIndex,
+                  prevLogTerm,
+                  entries,
+                  leaderCommit,
+                  replyTo) =>
+              ???
+            case RequestVote(
+                  term,
+                  candidateId,
+                  lastLogIndex,
+                  lastLogTerm,
+                  replyTo) =>
+              ???
+
+            // send request to state machine, wait for response and answer back to client
+            case ClientRequest(request, replyTo) => ???
+          }
+        case Candidate(currentTerm, votedFor, log, commitIndex, lastApplied) =>
+          c match {
+            case AppendEntries(
+                  term,
+                  leaderId,
+                  prevLogIndex,
+                  prevLogTerm,
+                  entries,
+                  leaderCommit,
+                  replyTo) =>
+              ???
+            case RequestVote(
+                  term,
+                  candidateId,
+                  lastLogIndex,
+                  lastLogTerm,
+                  replyTo) =>
+              ???
+
+            // there is no leader yet, thus push back into stack and compute next message
+            case ClientRequest(request, replyTo) => ???
+          }
+      }
+
+  private val eventHandler: (State, Event) => State = (s, e) =>
+    e match {
+      case EntriesAppended(term, leaderId, entries)                    => ???
+      case VoteRequested(term, candidateId, lastLogTerm, lastLogIndex) => ???
+    }
 
   def apply(): Behavior[Command] =
-    Behaviors.setup[Command] { context => ??? }
+    EventSourcedBehavior[Command, Event, State](
+      persistenceId = ???,
+      emptyState = Follower(0, None, Seq.empty, 0, 0),
+      commandHandler = commandHandler,
+      eventHandler = eventHandler)
 }

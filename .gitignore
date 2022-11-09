@@ -3,6 +3,7 @@
 
 # intellij idea
 .idea
+*.iml
 
 # other?
 .history

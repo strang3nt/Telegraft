@@ -1,6 +1,6 @@
 name := "telegraft-statemachine-service"
 
-organization := "com.telegraft.statemachine"
+organization := "com.telegraft"
 
 scalaVersion := "2.13.10"
 

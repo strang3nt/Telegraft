@@ -1,10 +1,9 @@
 package com.telegraft.rafktor
 
-import akka.NotUsed
-import akka.actor.typed.ActorRef
-import akka.stream.scaladsl.Source
+import akka.actor.typed.{ ActorRef, ActorSystem, Scheduler }
+import akka.actor.typed.scaladsl.AskPattern.Askable
+import akka.util.Timeout
 import com.telegraft.rafktor.proto.{
-  AppendEntriesPipelineResponse,
   AppendEntriesRequest,
   AppendEntriesResponse,
   RequestVoteRequest,
@@ -12,7 +11,8 @@ import com.telegraft.rafktor.proto.{
   TelegraftRaftService
 }
 
-import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ ExecutionContext, Future }
 
 /**
  * @param raftNode The raft node the implementation serves.
@@ -21,24 +21,48 @@ import scala.concurrent.Future
  * can understand. The actor then provides an answer and RaftServiceImpl
  * forwards it.
  */
-class RaftServiceImpl(raftNode: ActorRef[RaftNode.Command])
+class RaftServiceImpl(raftNode: ActorRef[RaftNode.Command])(
+    implicit system: ActorSystem[_])
     extends TelegraftRaftService {
 
-  /**
-   * AppendEntriesPipeline opens an AppendEntries message stream.
-   */
-  override def appendEntriesPipeline(in: Source[AppendEntriesRequest, NotUsed])
-      : Source[AppendEntriesPipelineResponse, NotUsed] = ???
+  private implicit val ec: ExecutionContext = system.executionContext
+  private implicit val scheduler: Scheduler = system.scheduler
+  private implicit val timeout: Timeout = 3.seconds
+  private def getNode(nodeId: com.google.protobuf.ByteString): Server = ???
 
   /**
    * AppendEntries performs a single append entries request / response.
    */
   override def appendEntries(
-      in: AppendEntriesRequest): Future[AppendEntriesResponse] = ???
+      in: AppendEntriesRequest): Future[AppendEntriesResponse] = {
+    raftNode
+      .ask(
+        RaftNode.AppendEntries(
+          in.term,
+          getNode(in.leader),
+          in.prevLogEntry,
+          in.prevLogTerm,
+          in.entries,
+          in.leaderCommitIndex,
+          _))
+      .map { r =>
+        proto.AppendEntriesResponse(r.term, r.success)
+      }
+  }
 
   /**
    * RequestVote is the command used by a candidate to ask a Raft peer for a vote in an election.
    */
   override def requestVote(
-      in: RequestVoteRequest): Future[RequestVoteResponse] = ???
+      in: RequestVoteRequest): Future[RequestVoteResponse] = {
+    raftNode
+      .ask(
+        RaftNode.RequestVote(
+          in.term,
+          getNode(in.candidate),
+          in.lastLogIndex,
+          in.lastLogTerm,
+          _))
+      .map(r => proto.RequestVoteResponse(r.term, r.voteGranted))
+  }
 }
