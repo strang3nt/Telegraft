@@ -10,6 +10,8 @@ import com.telegraft.rafktor.proto.TelegraftRaftServiceClient
  */
 class Server(host: String, port: Int)(implicit val system: ActorSystem[_]) {
 
+  val id: String = host + ":" + port
+
   private val grpcClient =
     GrpcClientSettings
       .connectToServiceAt(host, port)
@@ -17,4 +19,5 @@ class Server(host: String, port: Int)(implicit val system: ActorSystem[_]) {
       .withTls(false)
 
   val raftNodeGprcClient = TelegraftRaftServiceClient(grpcClient)
+
 }

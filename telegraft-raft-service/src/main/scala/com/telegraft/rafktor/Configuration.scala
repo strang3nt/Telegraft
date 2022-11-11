@@ -11,13 +11,15 @@ object Configuration {
   private val defaultConfig: Map[String, (String, Int)] = ???
 
   private var nodes: Set[Server] = Set.empty
-
   def apply(system: ActorSystem[_]): Unit = {
-    this.nodes =
-      defaultConfig.map { case (_, (host, port)) =>
-        new Server(host, port)(system)
-      }.toSet
+    this.nodes = defaultConfig.map { case (_, (host, port)) =>
+      new Server(host, port)(system)
+    }.toSet
   }
   def getOldConfiguration: Set[Server] = ???
   def getNewConfiguration: Set[Server] = ???
+
+  def getConfiguration: Set[Server] = ???
+  def majority: Int = (nodes.size / 2) + 1
+
 }

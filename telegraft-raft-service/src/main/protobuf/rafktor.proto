@@ -26,8 +26,6 @@ message LogEntry {
   uint64 term = 2;
   // Type holds the type of the log entry.
   LogEntryPayload type = 3;
-  // Data holds the log entry's type-specific data.
-  bytes data = 4;
 
 }
 
