@@ -24,9 +24,9 @@ class TelegraftStateMachineImpl(raftNode: ActorRef[RaftNode.Command])(
 
   override def createUser(in: CreateUserRequest): Future[CreateUserResponse] = {
     val response = raftNode
-      .askWithStatus(RaftNode.ClientRequest(CreateUser(in.username), _))
+      .askWithStatus(RaftNode.ClientRequest(Log.CreateUser(in.username), _))
       .map {
-        case UserCreated(ok, userId, errMsg) =>
+        case Log.UserCreated(ok, userId, errMsg) =>
           CreateUserResponse(ok, userId, errMsg)
         case r =>
           throw new Exception(
@@ -42,8 +42,8 @@ class TelegraftStateMachineImpl(raftNode: ActorRef[RaftNode.Command])(
   }
 
   private def googleTimestampToJavaInstant(
-      tmst: com.google.protobuf.timestamp.Timestamp) = {
-    java.time.Instant.ofEpochSecond(tmst.seconds, tmst.nanos)
+      timestamp: com.google.protobuf.timestamp.Timestamp) = {
+    java.time.Instant.ofEpochSecond(timestamp.seconds, timestamp.nanos)
   }
 
   override def sendMessage(
@@ -51,16 +51,16 @@ class TelegraftStateMachineImpl(raftNode: ActorRef[RaftNode.Command])(
     val response = raftNode
       .askWithStatus(
         RaftNode.ClientRequest(
-          SendMessage(
+          Log.SendMessage(
             in.userId,
             in.chatId,
             in.content,
             googleTimestampToJavaInstant(in.getTimestamp)),
           _))
       .map {
-        case MessageSent(ok, None, errMsg) =>
+        case Log.MessageSent(ok, None, errMsg) =>
           SendMessageResponse(ok, None, errMsg)
-        case MessageSent(ok, Some(msg), errMsg) =>
+        case Log.MessageSent(ok, Some(msg), errMsg) =>
           SendMessageResponse(
             ok,
             Some(
@@ -81,10 +81,10 @@ class TelegraftStateMachineImpl(raftNode: ActorRef[RaftNode.Command])(
     val response = raftNode
       .askWithStatus(
         RaftNode.ClientRequest(
-          CreateChat(in.userId, in.chatName, in.chatDescription),
+          Log.CreateChat(in.userId, in.chatName, in.chatDescription),
           _))
       .map {
-        case ChatCreated(ok, chatId, errMsg) =>
+        case Log.ChatCreated(ok, chatId, errMsg) =>
           CreateChatResponse(ok, chatId, errMsg)
         case r =>
           throw new Exception(
@@ -95,9 +95,10 @@ class TelegraftStateMachineImpl(raftNode: ActorRef[RaftNode.Command])(
 
   override def joinChat(in: JoinChatRequest): Future[JoinChatResponse] = {
     val response = raftNode
-      .askWithStatus(RaftNode.ClientRequest(JoinChat(in.userId, in.chatId), _))
+      .askWithStatus(
+        RaftNode.ClientRequest(Log.JoinChat(in.userId, in.chatId), _))
       .map {
-        case ChatJoined(ok, errMsg) =>
+        case Log.ChatJoined(ok, errMsg) =>
           JoinChatResponse(ok, errMsg)
         case r =>
           throw new Exception(
@@ -111,12 +112,12 @@ class TelegraftStateMachineImpl(raftNode: ActorRef[RaftNode.Command])(
     val response = raftNode
       .askWithStatus(
         RaftNode.ClientRequest(
-          GetMessages(
+          Log.GetMessages(
             in.userId,
             googleTimestampToJavaInstant(in.getMessagesAfter)),
           _))
       .map {
-        case MessagesRetrieved(ok, messages, errMsg) =>
+        case Log.MessagesRetrieved(ok, messages, errMsg) =>
           GetMessagesResponse(
             ok,
             messages

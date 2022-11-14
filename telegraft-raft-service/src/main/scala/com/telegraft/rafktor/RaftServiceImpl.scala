@@ -2,14 +2,17 @@ package com.telegraft.rafktor
 
 import akka.actor.typed.{ ActorRef, ActorSystem, Scheduler }
 import akka.actor.typed.scaladsl.AskPattern.Askable
+import akka.grpc.GrpcServiceException
 import akka.util.Timeout
 import com.telegraft.rafktor.proto.{
   AppendEntriesRequest,
   AppendEntriesResponse,
+  LogEntry,
   RequestVoteRequest,
   RequestVoteResponse,
   TelegraftRaftService
 }
+import io.grpc.Status
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ ExecutionContext, Future }
@@ -36,13 +39,13 @@ class RaftServiceImpl(raftNode: ActorRef[RaftNode.Command])(
   override def appendEntries(
       in: AppendEntriesRequest): Future[AppendEntriesResponse] = {
     raftNode
-      .ask(
+      .askWithStatus(
         RaftNode.AppendEntries(
           in.term,
-          getNode(in.leader),
+          in.leaderId,
           in.prevLogEntry,
           in.prevLogTerm,
-          in.entries,
+          fromLogEntriesToLog(in.entries),
           in.leaderCommitIndex,
           _))
       .map { r =>
@@ -50,16 +53,66 @@ class RaftServiceImpl(raftNode: ActorRef[RaftNode.Command])(
       }
   }
 
+  private def logEntryPayloadTranslator(
+      payload: proto.LogEntryPayload): Log.LogEntryPayLoad = {
+
+    import com.telegraft.statemachine.proto.{
+      CreateChatRequest,
+      CreateUserRequest,
+      GetMessagesRequest,
+      JoinChatRequest,
+      SendMessageRequest
+    }
+
+    import com.telegraft.rafktor.proto.LogEntryPayload.Payload.{
+      CreateChat,
+      CreateUser,
+      Empty,
+      GetMessage,
+      JoinChat,
+      SendMessage
+    }
+
+    payload.payload match {
+      case CreateChat(
+            CreateChatRequest(userId, chatName, chatDescription, _)) =>
+        Log.CreateChat(userId, chatName, chatDescription)
+      case CreateUser(CreateUserRequest(userName, _)) =>
+        Log.CreateUser(userName)
+      case JoinChat(JoinChatRequest(userId, chatId, _)) =>
+        Log.JoinChat(userId, chatId)
+      case GetMessage(GetMessagesRequest(userId, messagesAfter, _)) =>
+        Log.GetMessages(
+          userId,
+          java.time.Instant
+            .ofEpochSecond(messagesAfter.get.seconds, messagesAfter.get.nanos))
+      case SendMessage(
+            SendMessageRequest(userId, chatId, content, timestamp, _)) =>
+        Log.SendMessage(
+          userId,
+          chatId,
+          content,
+          java.time.Instant
+            .ofEpochSecond(timestamp.get.seconds, timestamp.get.nanos))
+    }
+  }
+
+  private def fromLogEntriesToLog(logEntries: Seq[LogEntry]): Log =
+    Log(
+      logEntries
+        .map(l => (logEntryPayloadTranslator(l.getType), l.term))
+        .toVector)
+
   /**
    * RequestVote is the command used by a candidate to ask a Raft peer for a vote in an election.
    */
   override def requestVote(
       in: RequestVoteRequest): Future[RequestVoteResponse] = {
     raftNode
-      .ask(
+      .askWithStatus(
         RaftNode.RequestVote(
           in.term,
-          getNode(in.candidate),
+          in.candidateId,
           in.lastLogIndex,
           in.lastLogTerm,
           _))

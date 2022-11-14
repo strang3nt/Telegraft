@@ -1,10 +1,18 @@
 package com.telegraft.rafktor
 
+import akka.actor.typed.scaladsl.{ ActorContext, Behaviors }
 import akka.actor.typed.{ ActorRef, Behavior }
 import akka.pattern.StatusReply
 import akka.persistence.typed.PersistenceId
-import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior }
+import akka.persistence.typed.scaladsl.{
+  Effect,
+  EventSourcedBehavior,
+  ReplyEffect
+}
 import com.telegraft.rafktor.Log.{ TelegraftRequest, TelegraftResponse }
+
+import scala.concurrent.{ ExecutionContext }
+import scala.util.{ Failure, Success }
 
 object RaftNode {
 
@@ -19,10 +27,10 @@ object RaftNode {
     val commitIndex: Long
     val lastApplied: Long
 
-    def mayConvertToFollower(
+    protected def mayConvertToFollower(
         newTerm: Long,
         newLeader: Option[String] = None): State =
-      if (this.currentTerm < newTerm) {
+      if (this.currentTerm <= newTerm) {
         Follower(
           currentTerm = newTerm,
           votedFor = None,
@@ -32,7 +40,38 @@ object RaftNode {
           leaderId = newLeader)
       } else this
 
+    protected def updateCommitIndex(leaderCommit: Long, newLog: Log): Long =
+      if (leaderCommit > this.commitIndex)
+        (newLog.logEntries.length - 1).min(leaderCommit.toInt)
+      else this.commitIndex
+
+    protected def becomeCandidate(serverId: String): Candidate =
+      Candidate(
+        currentTerm = this.currentTerm + 1,
+        votedFor = Some(serverId),
+        log = this.log,
+        commitIndex = this.commitIndex,
+        lastApplied = this.lastApplied,
+        countVotes = 1)
+    protected def becomeLeader: Leader =
+      Leader(
+        currentTerm = this.currentTerm,
+        votedFor = None,
+        log = this.log,
+        commitIndex = this.commitIndex,
+        lastApplied = this.lastApplied,
+        nextIndex =
+          Map.from[String, Long](Configuration.getConfiguration.map(server =>
+            (server.id, log.logEntries.length))),
+        matchIndex = Map.from[String, Long](
+          Configuration.getConfiguration.map(server => (server.id, -1))))
+
     def applyEvent(event: Event): State
+
+  }
+
+  object State {
+    def empty: Follower = Follower(-1, None, Log.empty, -1, -1, None)
   }
 
   final case class Follower(
@@ -59,20 +98,20 @@ object RaftNode {
           this.copy(
             log = newLog,
             votedFor = if (term > currentTerm) None else this.votedFor,
-            commitIndex =
-              if (leaderCommit > this.commitIndex)
-                (newLog.logEntries.length - 1).min(leaderCommit)
-              else this.commitIndex,
+            commitIndex = this.updateCommitIndex(leaderCommit, newLog),
             currentTerm = if (term > currentTerm) term else currentTerm,
             leaderId = Some(leaderId))
-        case VoteGranted(term, candidateId) =>
-          this.copy(
-            votedFor = Some(candidateId),
-            currentTerm = if (term > currentTerm) term else currentTerm)
-        case VoteRejected(term) =>
-          this.copy(
-            currentTerm = if (term > currentTerm) term else currentTerm,
-            votedFor = if (term > currentTerm) None else this.votedFor)
+        case VoteExpressed(term, candidateId, voteResult) =>
+          if (voteResult)
+            this.copy(
+              votedFor = Some(candidateId),
+              currentTerm = if (term > currentTerm) term else currentTerm)
+          else
+            this.copy(
+              currentTerm = if (term > currentTerm) term else currentTerm,
+              votedFor = if (term > currentTerm) None else this.votedFor)
+        case ElectionTimeoutElapsed(_, serverId) =>
+          becomeCandidate(serverId)
         case other => this.mayConvertToFollower(other.term)
       }
     }
@@ -88,25 +127,34 @@ object RaftNode {
       matchIndex: Map[String, Long])
       extends State {
 
-    override def applyEvent(event: Event): State = ???
-  }
-  object Leader {
-    def init(
-        currentTerm: Long,
-        log: Log,
-        commitIndex: Long,
-        lastApplied: Long): Leader =
-      Leader(
-        currentTerm = currentTerm,
-        votedFor = None,
-        log = log,
-        commitIndex = commitIndex,
-        lastApplied = lastApplied,
-        nextIndex =
-          Map.from[String, Long](Configuration.getConfiguration.map(server =>
-            (server.id, log.logEntries.length))),
-        matchIndex = Map.from[String, Long](
-          Configuration.getConfiguration.map(server => (server.id, -1))))
+    override def applyEvent(event: Event): State = {
+      event match {
+        case e @ EntriesAppended(term, leaderId, _, _, _) =>
+          this.mayConvertToFollower(term, Some(leaderId)) match {
+            case newState: Follower => newState.applyEvent(e)
+            case _                  => this
+          }
+        // TODO: check AppendEntriesResponseEvent case for correctness
+        case AppendEntriesResponseEvent(_, serverId, highestLogEntry, success)
+            if success =>
+          this.copy(
+            nextIndex = nextIndex + (serverId -> (highestLogEntry + 1)),
+            matchIndex =
+              if (highestLogEntry > this.matchIndex(serverId))
+                matchIndex + (serverId -> highestLogEntry)
+              else this.matchIndex)
+        case AppendEntriesResponseEvent(term, serverId, _, success)
+            if !success =>
+          if (term > currentTerm) {
+            this.mayConvertToFollower(term, Some(serverId))
+          } else { // term <= currentTerm && !success => log inconsistency
+            this.copy(nextIndex =
+              nextIndex + (serverId -> (nextIndex(serverId) - 1)))
+          }
+
+        case other => this.mayConvertToFollower(other.term)
+      }
+    }
   }
 
   final case class Candidate(
@@ -119,13 +167,16 @@ object RaftNode {
       extends State {
     override def applyEvent(event: Event): State = {
       event match {
-        case RequestVoteResponseGranted(_) =>
+        case RequestVoteResponseEvent(_, voteGranted) if voteGranted =>
           val newCountVotes = countVotes + 1
           if (newCountVotes >= Configuration.majority)
-            Leader.init(currentTerm, log, commitIndex, lastApplied)
+            this.becomeLeader
           else this.copy(countVotes = countVotes + 1)
         case e @ EntriesAppended(term, leaderId, _, _, _) =>
-          this.mayConvertToFollower(term, Some(leaderId)).applyEvent(e)
+          this.mayConvertToFollower(term, Some(leaderId)) match {
+            case newState: Follower => newState.applyEvent(e)
+            case _                  => this
+          }
         case other =>
           this.mayConvertToFollower(other.term)
       }
@@ -134,7 +185,12 @@ object RaftNode {
 
   sealed trait Command extends CborSerializable
 
-  private final case object ElectionTimeoutElapsed extends Command
+  /**
+   * Acts both as the command when followers and candidates
+   * election timeout is elapsed and when leader should
+   * sena heartbeats.
+   */
+  private final case object ElectionTimeout extends Command
   final case class AppendEntries(
       term: Long,
       leaderId: String,
@@ -159,7 +215,11 @@ object RaftNode {
       replyTo: ActorRef[StatusReply[TelegraftResponse]])
       extends Command
 
-  final case class AppendEntriesResponse(term: Long, success: Boolean)
+  final case class AppendEntriesResponse(
+      term: Long,
+      serverId: String,
+      lastLogEntry: Long,
+      success: Boolean)
       extends Command
 
   final case class RequestVoteResponse(term: Long, voteGranted: Boolean)
@@ -177,15 +237,29 @@ object RaftNode {
       entries: Log)
       extends Event
 
-  final case class VoteGranted(term: Long, candidateId: String) extends Event
-  final case class VoteRejected(term: Long) extends Event
-  final case class RequestVoteResponseGranted(term: Long) extends Event
-  final case class RequestVoteResponseRejected(term: Long) extends Event
+  final case class VoteExpressed(
+      term: Long,
+      candidateId: String,
+      voteResult: Boolean)
+      extends Event
+
+  final case class AppendEntriesResponseEvent(
+      term: Long,
+      serverId: String,
+      highestLogEntry: Long,
+      success: Boolean)
+      extends Event
+  final case class RequestVoteResponseEvent(term: Long, voteGranted: Boolean)
+      extends Event
+
+  final case class ElectionTimeoutElapsed(term: Long, serverId: String)
+      extends Event
 
   final case class ClientRequested(term: Long = -1) extends Event
   // end protocol
 
   private def appendEntriesReceiverImpl(
+      serverId: String,
       currentTerm: Long,
       log: Log,
       term: Long,
@@ -195,25 +269,31 @@ object RaftNode {
       entries: Log,
       leaderCommit: Long,
       replyTo: ActorRef[StatusReply[AppendEntriesResponse]])
-      : Effect[Event, State] = {
+      : ReplyEffect[Event, State] = {
+    val entriesAppended =
+      EntriesAppended(term, leaderId, prevLogIndex, leaderCommit, entries)
     if (term < currentTerm || log.entryIsConflicting(
         log,
         prevLogIndex.toInt,
         prevLogTerm)) {
       Effect
-        .persist(
-          EntriesAppended(term, leaderId, prevLogIndex, leaderCommit, entries))
+        .persist(entriesAppended)
         .thenReply(replyTo)(state =>
           StatusReply.Success(
-            AppendEntriesResponse(state.currentTerm, success = false)))
+            AppendEntriesResponse(
+              state.currentTerm,
+              serverId,
+              state.log.logEntries.length - 1,
+              success = false)))
     } else
-      Effect
-        .persist(
-          EntriesAppended(term, leaderId, prevLogIndex, leaderCommit, entries))
-        .thenReply(replyTo) { state =>
-          StatusReply.Success(
-            AppendEntriesResponse(state.currentTerm, success = true))
-        }
+      Effect.persist(entriesAppended).thenReply(replyTo) { state =>
+        StatusReply.Success(
+          AppendEntriesResponse(
+            state.currentTerm,
+            serverId,
+            state.log.logEntries.length - 1,
+            success = true))
+      }
   }
 
   private def requestVoteReceiverImpl(
@@ -225,89 +305,157 @@ object RaftNode {
       lastLogIndex: Long,
       lastLogTerm: Long,
       replyTo: ActorRef[StatusReply[RequestVoteResponse]])
-      : Effect[Event, State] = {
+      : ReplyEffect[Event, State] = {
     if (term >= currentTerm && (votedFor.isEmpty || votedFor.contains(
         candidateId) && !log.isMoreUpToDate(lastLogIndex.toInt, lastLogTerm))) {
       Effect
-        .persist(VoteGranted(term, candidateId))
+        .persist(VoteExpressed(term, candidateId, voteResult = true))
         .thenReply(replyTo)(state =>
           StatusReply.Success(
             RequestVoteResponse(state.currentTerm, voteGranted = true)))
 
     } else
       Effect
-        .persist(VoteRejected(term))
+        .persist(VoteExpressed(term, candidateId, voteResult = false))
         .thenReply(replyTo)(state =>
           StatusReply.Success(
             RequestVoteResponse(state.currentTerm, voteGranted = false)))
   }
 
-  private val commandHandler: (State, Command) => Effect[Event, State] =
-    (s, c) =>
-      s match {
-        case Follower(
-              currentTerm,
-              votedFor,
-              log,
-              commitIndex,
-              lastApplied,
-              leaderId) =>
-          c match {
-            // routes to leader, waits for response and sends it to client
-            case ClientRequest(request, replyTo) => ???
-            case rpc =>
-              commonReceiverImpl(rpc, currentTerm, log, votedFor)
-          }
-        case Leader(
-              currentTerm,
-              votedFor,
-              log,
-              commitIndex,
-              lastApplied,
-              nextIndex,
-              maxIndex) =>
-          c match {
-            // send request to state machine, wait for response and answer back to client
-            case ClientRequest(request, replyTo) => ???
-            case rpc =>
-              commonReceiverImpl(rpc, currentTerm, log, votedFor)
-          }
-        case Candidate(
-              currentTerm,
-              votedFor,
-              log,
-              commitIndex,
-              lastApplied,
-              countVotes) =>
-          c match {
-            // there is no leader yet, thus push back into stack and compute next message
-            case ClientRequest(request, replyTo) => ???
-            case rpc =>
-              commonReceiverImpl(rpc, currentTerm, log, votedFor)
-          }
+  private def startElection(
+      s: State,
+      serverId: String,
+      context: ActorContext[Command]): ReplyEffect[Event, State] = {
+    Effect
+      .persist(ElectionTimeoutElapsed(s.currentTerm, serverId))
+      .thenRun { state: State =>
+        Configuration.getConfiguration
+          .map(server =>
+            server.raftNodeGprcClient.requestVote(
+              proto.RequestVoteRequest(
+                state.currentTerm,
+                serverId,
+                lastLogIndex = state.log.logEntries.length - 1,
+                lastLogTerm = state.log.logEntries.last._2)))
+          .foreach(context.pipeToSelf(_) {
+            case Success(r) =>
+              RaftNode.RequestVoteResponse(r.term, r.granted)
+            // failure (timeout or any other type of failure) is a vote rejection
+            case Failure(_) =>
+              RequestVoteResponse(-1, voteGranted = false)
+          })
       }
+      .thenNoReply()
+  }
 
-  private val eventHandler: (State, Event) => State = (s, e) => {
+  private def commandHandler(
+      context: ActorContext[Command],
+      serverId: String,
+      s: State,
+      c: Command): ReplyEffect[Event, State] = {
 
-    // if RPC contains term t > current term revert back to follower
-    // if commitIndex > lastApplied increment last applied and apply log to state machine
-    e match {
-      case event @ EntriesAppended(
-            term,
-            leaderId,
-            prevLogIndex,
-            leaderCommit,
-            entries) =>
-        s.applyEvent(event)
-      case VoteGranted(term, candidateId) => ???
+    s match {
+      case Follower(currentTerm, votedFor, log, _, _, _) =>
+        c match {
+          // routes to leader, waits for response and sends it to client
+          case ClientRequest(request, replyTo) => ???
+          case ElectionTimeout =>
+            startElection(s, serverId, context)
+          case rpc =>
+            commonReceiverImpl(serverId, rpc, currentTerm, log, votedFor)
+        }
+      case Leader(
+            currentTerm,
+            votedFor,
+            log,
+            commitIndex,
+            lastApplied,
+            nextIndex,
+            maxIndex) =>
+        c match {
+          // send request to state machine, wait for response and answer back to client
+          case ClientRequest(request, replyTo) => ???
+          case ElectionTimeout                 =>
+            // should send empty heartbeats
+            Effect
+              .persist(ElectionTimeoutElapsed(s.currentTerm, serverId))
+              .thenRun { state: State =>
+                Configuration.getConfiguration
+                  .map(server =>
+                    (
+                      server,
+                      server.raftNodeGprcClient.appendEntries(
+                        proto.AppendEntriesRequest(
+                          state.currentTerm,
+                          serverId,
+                          state.log.logEntries.length - 1,
+                          state.log.logEntries.last._2,
+                          Seq.empty,
+                          state.commitIndex))))
+                  .foreach { case (server, future) =>
+                    context.pipeToSelf(future) {
+                      case Success(response) =>
+                        RaftNode.AppendEntriesResponse(
+                          response.term,
+                          server.id,
+                          state.log.logEntries.length - 1,
+                          response.success)
+                      // failure (timeout or any other type of failure) is a AppendEntries success:
+                      // it is important that the leader does nothing, he will retry at the next
+                      // timeout
+                      case Failure(_) =>
+                        RaftNode.AppendEntriesResponse(
+                          state.currentTerm,
+                          server.id,
+                          nextIndex(
+                            serverId) - 1, //this way the index is not updated
+                          success = true)
+                    }
+                  }
+              }
+              .thenNoReply()
+
+          case AppendEntriesResponse(term, receiverId, lastLogEntry, success) =>
+            Effect
+              .persist(
+                AppendEntriesResponseEvent(
+                  term,
+                  receiverId,
+                  lastLogEntry,
+                  success))
+              .thenNoReply()
+
+          case rpc =>
+            commonReceiverImpl(serverId, rpc, currentTerm, log, votedFor)
+        }
+      case Candidate(
+            currentTerm,
+            votedFor,
+            log,
+            commitIndex,
+            lastApplied,
+            countVotes) =>
+        c match {
+          // there is no leader yet, thus push back into stack and compute next message
+          case ClientRequest(request, replyTo) => ???
+          case ElectionTimeout =>
+            startElection(s, serverId, context)
+          case RequestVoteResponse(term, voteGranted) =>
+            Effect
+              .persist(RequestVoteResponseEvent(term, voteGranted))
+              .thenNoReply()
+          case rpc =>
+            commonReceiverImpl(serverId, rpc, currentTerm, log, votedFor)
+        }
     }
   }
 
   private def commonReceiverImpl(
+      serverId: String,
       c: Command,
       currentTerm: Long,
       log: Log,
-      votedFor: Option[String]): Effect[Event, State] = {
+      votedFor: Option[String]): ReplyEffect[Event, State] = {
     c match {
       case AppendEntries(
             term,
@@ -318,6 +466,7 @@ object RaftNode {
             leaderCommit,
             replyTo) =>
         appendEntriesReceiverImpl(
+          serverId,
           currentTerm,
           log,
           term,
@@ -337,16 +486,18 @@ object RaftNode {
           lastLogIndex,
           lastLogTerm,
           replyTo)
-      case RequestVoteResponse(term, voteGranted) => ???
-      case AppendEntriesResponse(term, success)   => ???
-      case _                                      => Effect.unhandled
+      case _ => Effect.unhandled.thenNoReply()
     }
   }
 
-  def apply(serverId: String): Behavior[Command] =
-    EventSourcedBehavior[Command, Event, State](
-      persistenceId = PersistenceId.ofUniqueId(serverId),
-      emptyState = Follower(-1, None, Log.empty, -1, -1, None),
-      commandHandler = commandHandler,
-      eventHandler = eventHandler)
+  def apply(serverId: String): Behavior[Command] = {
+    Behaviors.setup[Command] { ctx =>
+      EventSourcedBehavior.withEnforcedReplies[Command, Event, State](
+        persistenceId = PersistenceId.ofUniqueId(serverId),
+        emptyState = State.empty,
+        commandHandler =
+          (state, event) => commandHandler(ctx, serverId, state, event),
+        eventHandler = (state, event) => state.applyEvent(event))
+    }
+  }
 }
