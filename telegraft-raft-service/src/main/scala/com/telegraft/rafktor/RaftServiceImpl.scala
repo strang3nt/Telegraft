@@ -2,7 +2,6 @@ package com.telegraft.rafktor
 
 import akka.actor.typed.{ ActorRef, ActorSystem, Scheduler }
 import akka.actor.typed.scaladsl.AskPattern.Askable
-import akka.grpc.GrpcServiceException
 import akka.util.Timeout
 import com.telegraft.rafktor.proto.{
   AppendEntriesRequest,
@@ -12,8 +11,8 @@ import com.telegraft.rafktor.proto.{
   RequestVoteResponse,
   TelegraftRaftService
 }
-import io.grpc.Status
 
+import java.time.Instant
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -24,14 +23,13 @@ import scala.concurrent.{ ExecutionContext, Future }
  * can understand. The actor then provides an answer and RaftServiceImpl
  * forwards it.
  */
-class RaftServiceImpl(raftNode: ActorRef[RaftNode.Command])(
+class RaftServiceImpl(raftNode: ActorRef[RaftServer.Command])(
     implicit system: ActorSystem[_])
     extends TelegraftRaftService {
 
   private implicit val ec: ExecutionContext = system.executionContext
   private implicit val scheduler: Scheduler = system.scheduler
   private implicit val timeout: Timeout = 3.seconds
-  private def getNode(nodeId: com.google.protobuf.ByteString): Server = ???
 
   /**
    * AppendEntries performs a single append entries request / response.
@@ -40,7 +38,7 @@ class RaftServiceImpl(raftNode: ActorRef[RaftNode.Command])(
       in: AppendEntriesRequest): Future[AppendEntriesResponse] = {
     raftNode
       .askWithStatus(
-        RaftNode.AppendEntries(
+        RaftServer.AppendEntries(
           in.term,
           in.leaderId,
           in.prevLogEntry,
@@ -53,8 +51,13 @@ class RaftServiceImpl(raftNode: ActorRef[RaftNode.Command])(
       }
   }
 
+  private def googleTimestampToJavaInstant(
+      timestamp: com.google.protobuf.timestamp.Timestamp): Instant = {
+    java.time.Instant.ofEpochSecond(timestamp.seconds, timestamp.nanos)
+  }
+
   private def logEntryPayloadTranslator(
-      payload: proto.LogEntryPayload): Log.LogEntryPayLoad = {
+      payload: proto.LogEntryPayload): Option[Log.LogEntryPayLoad] = {
 
     import com.telegraft.statemachine.proto.{
       CreateChatRequest,
@@ -76,24 +79,25 @@ class RaftServiceImpl(raftNode: ActorRef[RaftNode.Command])(
     payload.payload match {
       case CreateChat(
             CreateChatRequest(userId, chatName, chatDescription, _)) =>
-        Log.CreateChat(userId, chatName, chatDescription)
+        Some(Log.CreateChat(userId, chatName, chatDescription))
       case CreateUser(CreateUserRequest(userName, _)) =>
-        Log.CreateUser(userName)
+        Some(Log.CreateUser(userName))
       case JoinChat(JoinChatRequest(userId, chatId, _)) =>
-        Log.JoinChat(userId, chatId)
+        Some(Log.JoinChat(userId, chatId))
       case GetMessage(GetMessagesRequest(userId, messagesAfter, _)) =>
-        Log.GetMessages(
-          userId,
-          java.time.Instant
-            .ofEpochSecond(messagesAfter.get.seconds, messagesAfter.get.nanos))
+        Some(
+          Log.GetMessages(
+            userId,
+            googleTimestampToJavaInstant(messagesAfter.get)))
       case SendMessage(
             SendMessageRequest(userId, chatId, content, timestamp, _)) =>
-        Log.SendMessage(
-          userId,
-          chatId,
-          content,
-          java.time.Instant
-            .ofEpochSecond(timestamp.get.seconds, timestamp.get.nanos))
+        Some(
+          Log.SendMessage(
+            userId,
+            chatId,
+            content,
+            googleTimestampToJavaInstant(timestamp.get)))
+      case Empty => None
     }
   }
 
@@ -101,6 +105,9 @@ class RaftServiceImpl(raftNode: ActorRef[RaftNode.Command])(
     Log(
       logEntries
         .map(l => (logEntryPayloadTranslator(l.getType), l.term))
+        .collect { case (Some(payload), term) =>
+          (payload, term)
+        }
         .toVector)
 
   /**
@@ -110,7 +117,7 @@ class RaftServiceImpl(raftNode: ActorRef[RaftNode.Command])(
       in: RequestVoteRequest): Future[RequestVoteResponse] = {
     raftNode
       .askWithStatus(
-        RaftNode.RequestVote(
+        RaftServer.RequestVote(
           in.term,
           in.candidateId,
           in.lastLogIndex,

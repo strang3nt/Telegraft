@@ -22,4 +22,7 @@ object Configuration {
   def getConfiguration: Set[Server] = ???
   def majority: Int = (nodes.size / 2) + 1
 
+  def getServer(serverId: String): Server =
+    nodes.filter(_.id == serverId).head
+
 }
