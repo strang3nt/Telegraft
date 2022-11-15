@@ -22,9 +22,7 @@ sealed trait RaftState extends CborSerializable {
   val commitIndex: Long
   val lastApplied: Long
 
-  protected def convertToFollower(
-      newTerm: Long,
-      newLeader: Option[String] = None): RaftState =
+  protected def convertToFollower(newTerm: Long, newLeader: Option[String] = None): RaftState =
     Follower(
       currentTerm = newTerm,
       votedFor = None,
@@ -33,10 +31,11 @@ sealed trait RaftState extends CborSerializable {
       lastApplied = this.lastApplied,
       leaderId = newLeader)
 
-  protected def updateCommitIndex(leaderCommit: Long, newLog: Log): Long =
+  protected def updateCommitIndex(leaderCommit: Long, newLog: Log): Long = {
     if (leaderCommit > this.commitIndex)
       (newLog.logEntries.length - 1).min(leaderCommit.toInt)
     else this.commitIndex
+  }
 
   protected def becomeCandidate(serverId: String): Candidate =
     Candidate(
@@ -55,10 +54,8 @@ sealed trait RaftState extends CborSerializable {
       commitIndex = this.commitIndex,
       lastApplied = this.lastApplied,
       nextIndex =
-        Map.from[String, Long](Configuration.getConfiguration.map(server =>
-          (server.id, log.logEntries.length))),
-      matchIndex = Map.from[String, Long](
-        Configuration.getConfiguration.map(server => (server.id, -1))))
+        Map.from[String, Long](Configuration.getConfiguration.map(server => (server.id, log.logEntries.length))),
+      matchIndex = Map.from[String, Long](Configuration.getConfiguration.map(server => (server.id, -1))))
 
   def applyEvent(event: Event): RaftState
 
@@ -78,15 +75,9 @@ object RaftState {
 
     override def applyEvent(event: Event): RaftState = {
       event match {
-        case EntriesAppended(
-              term,
-              leaderId,
-              prevLogIndex,
-              leaderCommit,
-              entries) =>
-          val newLog = this.log
-            .removeConflictingEntries(entries, prevLogIndex.toInt)
-            .appendEntries(entries, prevLogIndex.toInt)
+        case EntriesAppended(term, leaderId, prevLogIndex, leaderCommit, entries) =>
+          val newLog =
+            this.log.removeConflictingEntries(entries, prevLogIndex.toInt).appendEntries(entries, prevLogIndex.toInt)
 
           this.copy(
             log = newLog,
@@ -96,9 +87,7 @@ object RaftState {
             leaderId = Some(leaderId))
         case VoteExpressed(term, candidateId, voteResult) =>
           if (voteResult)
-            this.copy(
-              votedFor = Some(candidateId),
-              currentTerm = if (term > currentTerm) term else currentTerm)
+            this.copy(votedFor = Some(candidateId), currentTerm = if (term > currentTerm) term else currentTerm)
           else
             this.copy(
               currentTerm = if (term > currentTerm) term else currentTerm,
@@ -123,27 +112,28 @@ object RaftState {
       extends RaftState {
 
     override def applyEvent(event: Event): RaftState = {
+
+//      If there exists an N such that N > commitIndex, a majority of matchIndex[i] ≥ N
+//      and log[N].term == currentTerm: set commitIndex = N
+
       event match {
         case e @ EntriesAppended(term, leaderId, _, _, _) =>
           if (this.currentTerm <= term) {
             this.convertToFollower(term, Some(leaderId)).applyEvent(e)
           } else this
         // TODO: check AppendEntriesResponseEvent case for correctness
-        case AppendEntriesResponseEvent(_, serverId, highestLogEntry, success)
-            if success =>
+        case AppendEntriesResponseEvent(_, serverId, highestLogEntry, success) if success =>
           this.copy(
             nextIndex = nextIndex + (serverId -> (highestLogEntry + 1)),
             matchIndex =
               if (highestLogEntry > this.matchIndex(serverId))
                 matchIndex + (serverId -> highestLogEntry)
               else this.matchIndex)
-        case AppendEntriesResponseEvent(term, serverId, _, success)
-            if !success =>
+        case AppendEntriesResponseEvent(term, serverId, _, success) if !success =>
           if (term > currentTerm) {
             this.convertToFollower(term, Some(serverId))
           } else { // term <= currentTerm && !success => log inconsistency
-            this.copy(nextIndex =
-              nextIndex + (serverId -> (nextIndex(serverId) - 1)))
+            this.copy(nextIndex = nextIndex + (serverId -> (nextIndex(serverId) - 1)))
           }
 
         case other =>

@@ -50,6 +50,8 @@ Clients can query each one of the replicas, and they will get a response:
 > for this reason the raft cluster could keep track of the client identity and assign an id to each request
 > in order to not compute a request twice. This is suggested in §4 of the following [document](https://web.stanford.edu/~ouster/cgi-bin/papers/OngaroPhD.pdf)
 
+### Timeouts
+
 ## Further development and investigation
 
  - InstallSnapshotRPC
