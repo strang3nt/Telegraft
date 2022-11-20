@@ -21,7 +21,6 @@ message LogEntryPayload {
 // LogEntry contains a raft log entry.
 message LogEntry {
   // Index holds the index of the log entry.
-  uint64 index = 1;
   // Term holds the election term of the log entry.
   uint64 term = 2;
   // Type holds the type of the log entry.

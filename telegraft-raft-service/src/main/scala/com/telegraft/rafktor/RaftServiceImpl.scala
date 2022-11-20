@@ -51,11 +51,6 @@ class RaftServiceImpl(raftNode: ActorRef[RaftServer.Command])(
       }
   }
 
-  private def googleTimestampToJavaInstant(
-      timestamp: com.google.protobuf.timestamp.Timestamp): Instant = {
-    java.time.Instant.ofEpochSecond(timestamp.seconds, timestamp.nanos)
-  }
-
   private def logEntryPayloadTranslator(
       payload: proto.LogEntryPayload): Option[Log.LogEntryPayLoad] = {
 
@@ -85,18 +80,11 @@ class RaftServiceImpl(raftNode: ActorRef[RaftServer.Command])(
       case JoinChat(JoinChatRequest(userId, chatId, _)) =>
         Some(Log.JoinChat(userId, chatId))
       case GetMessage(GetMessagesRequest(userId, messagesAfter, _)) =>
-        Some(
-          Log.GetMessages(
-            userId,
-            googleTimestampToJavaInstant(messagesAfter.get)))
+        Some(Log.GetMessages(userId, messagesAfter.get.asJavaInstant))
       case SendMessage(
             SendMessageRequest(userId, chatId, content, timestamp, _)) =>
         Some(
-          Log.SendMessage(
-            userId,
-            chatId,
-            content,
-            googleTimestampToJavaInstant(timestamp.get)))
+          Log.SendMessage(userId, chatId, content, timestamp.get.asJavaInstant))
       case Empty => None
     }
   }

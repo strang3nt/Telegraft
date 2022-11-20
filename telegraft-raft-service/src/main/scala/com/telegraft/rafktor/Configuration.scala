@@ -16,8 +16,6 @@ object Configuration {
       new Server(host, port)(system)
     }.toSet
   }
-  def getOldConfiguration: Set[Server] = ???
-  def getNewConfiguration: Set[Server] = ???
 
   def getConfiguration: Set[Server] = ???
   def majority: Int = (nodes.size / 2) + 1

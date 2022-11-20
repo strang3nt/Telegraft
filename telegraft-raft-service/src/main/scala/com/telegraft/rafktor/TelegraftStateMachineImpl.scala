@@ -35,17 +35,6 @@ class TelegraftStateMachineImpl(raftNode: ActorRef[RaftServer.Command])(
     convertError(response)
   }
 
-  private def javaInstantToGoogleTimestamp(inst: java.time.Instant) = {
-    Some(
-      com.google.protobuf.timestamp.Timestamp
-        .of(inst.getEpochSecond, inst.getNano))
-  }
-
-  private def googleTimestampToJavaInstant(
-      timestamp: com.google.protobuf.timestamp.Timestamp) = {
-    java.time.Instant.ofEpochSecond(timestamp.seconds, timestamp.nanos)
-  }
-
   override def sendMessage(
       in: SendMessageRequest): Future[SendMessageResponse] = {
     val response = raftNode
@@ -55,7 +44,7 @@ class TelegraftStateMachineImpl(raftNode: ActorRef[RaftServer.Command])(
             in.userId,
             in.chatId,
             in.content,
-            googleTimestampToJavaInstant(in.getTimestamp)),
+            in.getTimestamp.asJavaInstant),
           _))
       .map {
         case Log.MessageSent(ok, None, errMsg) =>
@@ -68,7 +57,7 @@ class TelegraftStateMachineImpl(raftNode: ActorRef[RaftServer.Command])(
                 msg.userId,
                 msg.chatId,
                 msg.content,
-                javaInstantToGoogleTimestamp(msg.sentTime))),
+                Some(com.google.protobuf.timestamp.Timestamp(msg.sentTime)))),
             errMsg)
         case r =>
           throw new Exception(
@@ -112,9 +101,7 @@ class TelegraftStateMachineImpl(raftNode: ActorRef[RaftServer.Command])(
     val response = raftNode
       .askWithStatus(
         RaftServer.ClientRequest(
-          Log.GetMessages(
-            in.userId,
-            googleTimestampToJavaInstant(in.getMessagesAfter)),
+          Log.GetMessages(in.userId, in.getMessagesAfter.asJavaInstant),
           _))
       .map {
         case Log.MessagesRetrieved(ok, messages, errMsg) =>
@@ -126,7 +113,7 @@ class TelegraftStateMachineImpl(raftNode: ActorRef[RaftServer.Command])(
                   m.userId,
                   m.chatId,
                   m.content,
-                  javaInstantToGoogleTimestamp(m.sentTime)))
+                  Some(com.google.protobuf.timestamp.Timestamp(m.sentTime))))
               .toSeq,
             errMsg)
         case r =>
