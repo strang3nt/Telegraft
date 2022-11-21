@@ -12,15 +12,8 @@ import com.telegraft.rafktor.Log.{
   TelegraftResponse,
   UserCreated
 }
-import ChatCreated.convertFromGRPC
-import ChatJoined.convertFromGRPC
-import MessageSent.convertFromGRPC
-import UserCreated.convertFromGRPC
-import MessagesRetrieved.convertFromGRPC
 import com.telegraft.statemachine.proto.TelegraftStateMachineService
-
 import scala.util.{ Failure, Success }
-import scala.language.implicitConversions
 
 /**
  * Actor which receives a payload to deliver to telegraft-statemachine-service
@@ -49,7 +42,9 @@ object StateMachine {
               ctx.pipeToSelf(
                 telegraftService.createUser(r.convertToGRPC.value)) {
                 case Success(value) =>
-                  ClientResponse(StatusReply.Success(value), replyTo)
+                  ClientResponse(
+                    StatusReply.Success(value: UserCreated),
+                    replyTo)
                 case Failure(exception) =>
                   ClientResponse(StatusReply.Error(exception), replyTo)
               }
@@ -58,7 +53,9 @@ object StateMachine {
               ctx.pipeToSelf(
                 telegraftService.sendMessage(r.convertToGRPC.value)) {
                 case Success(value) =>
-                  ClientResponse(StatusReply.Success(value), replyTo)
+                  ClientResponse(
+                    StatusReply.Success(value: MessageSent),
+                    replyTo)
                 case Failure(exception) =>
                   ClientResponse(StatusReply.Error(exception), replyTo)
               }
@@ -67,7 +64,9 @@ object StateMachine {
               ctx.pipeToSelf(
                 telegraftService.createChat(r.convertToGRPC.value)) {
                 case Success(value) =>
-                  ClientResponse(StatusReply.Success(value), replyTo)
+                  ClientResponse(
+                    StatusReply.Success(value: ChatCreated),
+                    replyTo)
                 case Failure(exception) =>
                   ClientResponse(StatusReply.Error(exception), replyTo)
               }
@@ -75,7 +74,9 @@ object StateMachine {
             case r: Log.JoinChat =>
               ctx.pipeToSelf(telegraftService.joinChat(r.convertToGRPC.value)) {
                 case Success(value) =>
-                  ClientResponse(StatusReply.Success(value), replyTo)
+                  ClientResponse(
+                    StatusReply.Success(value: ChatJoined),
+                    replyTo)
                 case Failure(exception) =>
                   ClientResponse(StatusReply.Error(exception), replyTo)
               }
@@ -84,7 +85,9 @@ object StateMachine {
               ctx.pipeToSelf(
                 telegraftService.getMessages(r.convertToGRPC.value)) {
                 case Success(value) =>
-                  ClientResponse(StatusReply.Success(value), replyTo)
+                  ClientResponse(
+                    StatusReply.Success(value: MessagesRetrieved),
+                    replyTo)
                 case Failure(exception) =>
                   ClientResponse(StatusReply.Error(exception), replyTo)
               }

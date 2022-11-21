@@ -11,8 +11,6 @@ import com.telegraft.rafktor.proto.{
   RequestVoteResponse,
   TelegraftRaftService
 }
-
-import java.time.Instant
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ ExecutionContext, Future }
 

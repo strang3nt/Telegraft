@@ -133,23 +133,20 @@ object RaftServer {
       serverId: String,
       currentTerm: Long,
       log: Log,
-      term: Long,
-      leaderId: String,
-      prevLogIndex: Long,
-      prevLogTerm: Long,
-      entries: Log,
-      leaderCommit: Long,
-      replyTo: ActorRef[StatusReply[AppendEntriesResponse]])
-      : ReplyEffect[Event, RaftState] = {
+      rpc: AppendEntries,
+      timer: TimerScheduler[Command]): ReplyEffect[Event, RaftState] = {
+
     val entriesAppended =
-      EntriesAppended(term, leaderId, prevLogIndex, leaderCommit, entries)
-    if (term < currentTerm || log.entryIsConflicting(
-        log,
-        prevLogIndex.toInt,
-        prevLogTerm)) {
+      EntriesAppended(
+        rpc.term,
+        rpc.leaderId,
+        rpc.prevLogIndex,
+        rpc.leaderCommit,
+        rpc.entries)
+    if (rpc.term < currentTerm) {
       Effect
         .persist(entriesAppended)
-        .thenReply(replyTo)(state =>
+        .thenReply(rpc.replyTo)(state =>
           StatusReply.Success(
             AppendEntriesResponse(
               state.currentTerm,
@@ -159,13 +156,19 @@ object RaftServer {
     } else
       Effect
         .persist(entriesAppended)
-        .thenReply(replyTo) { state: RaftState =>
+        .thenRun { _: RaftState =>
+          timer.startSingleTimer(ElectionTimeout, randomTimeout)
+        }
+        .thenReply(rpc.replyTo) { state =>
           StatusReply.Success(
             AppendEntriesResponse(
               state.currentTerm,
               serverId,
               state.log.logEntries.length - 1,
-              success = true))
+              success = !log.entryIsConflicting(
+                log,
+                rpc.prevLogIndex.toInt,
+                rpc.prevLogTerm)))
         }
         .thenUnstashAll()
   }
@@ -174,29 +177,27 @@ object RaftServer {
       currentTerm: Long,
       log: Log,
       votedFor: Option[String],
-      term: Long,
-      candidateId: String,
-      lastLogIndex: Long,
-      lastLogTerm: Long,
-      replyTo: ActorRef[StatusReply[RequestVoteResponse]])
-      : ReplyEffect[Event, RaftState] = {
-    if (term >= currentTerm && (votedFor.isEmpty || votedFor.contains(
-        candidateId) && !log.isMoreUpToDate(lastLogIndex.toInt, lastLogTerm))) {
+      rpc: RequestVote): ReplyEffect[Event, RaftState] = {
+    if (rpc.term >= currentTerm && (votedFor.isEmpty || votedFor.contains(
+        rpc.candidateId) && !log.isMoreUpToDate(
+        rpc.lastLogIndex.toInt,
+        rpc.lastLogTerm))) {
       Effect
-        .persist(VoteExpressed(term, candidateId, voteResult = true))
-        .thenReply(replyTo)(state =>
+        .persist(VoteExpressed(rpc.term, rpc.candidateId, voteResult = true))
+        .thenReply(rpc.replyTo)(state =>
           StatusReply.Success(
             RequestVoteResponse(state.currentTerm, voteGranted = true)))
 
     } else
       Effect
-        .persist(VoteExpressed(term, candidateId, voteResult = false))
-        .thenReply(replyTo)(state =>
+        .persist(VoteExpressed(rpc.term, rpc.candidateId, voteResult = false))
+        .thenReply(rpc.replyTo)(state =>
           StatusReply.Success(
             RequestVoteResponse(state.currentTerm, voteGranted = false)))
   }
 
   private def startElection(
+      timer: TimerScheduler[Command],
       s: RaftState,
       serverId: String,
       context: ActorContext[Command]): ReplyEffect[Event, RaftState] = {
@@ -220,6 +221,7 @@ object RaftServer {
               RequestVoteResponse(-1, voteGranted = false)
           })
       }
+      .thenRun(_ => timer.startSingleTimer(ElectionTimeout, randomTimeout))
       .thenNoReply()
   }
 
@@ -228,37 +230,13 @@ object RaftServer {
       c: Command,
       currentTerm: Long,
       log: Log,
-      votedFor: Option[String]): ReplyEffect[Event, RaftState] = {
+      votedFor: Option[String],
+      timer: TimerScheduler[Command]): ReplyEffect[Event, RaftState] = {
     c match {
-      case AppendEntries(
-            term,
-            leaderId,
-            prevLogIndex,
-            prevLogTerm,
-            entries,
-            leaderCommit,
-            replyTo) =>
-        appendEntriesReceiverImpl(
-          serverId,
-          currentTerm,
-          log,
-          term,
-          leaderId,
-          prevLogIndex,
-          prevLogTerm,
-          entries,
-          leaderCommit,
-          replyTo)
-      case RequestVote(term, candidateId, lastLogIndex, lastLogTerm, replyTo) =>
-        requestVoteReceiverImpl(
-          currentTerm,
-          log,
-          votedFor,
-          term,
-          candidateId,
-          lastLogIndex,
-          lastLogTerm,
-          replyTo)
+      case rpc: AppendEntries =>
+        appendEntriesReceiverImpl(serverId, currentTerm, log, rpc, timer)
+      case rpc: RequestVote =>
+        requestVoteReceiverImpl(currentTerm, log, votedFor, rpc)
       case WrappedClientResponse(response, replyTo) =>
         Effect.reply(replyTo)(StatusReply.Success(response))
       case _ => Effect.unhandled.thenNoReply()
@@ -371,12 +349,9 @@ object RaftServer {
       c: Command): ReplyEffect[Event, RaftState] = {
 
     implicit val ec: ExecutionContext = context.executionContext
-    implicit val timer: Timeout = Timeout.create(
+    implicit val timeout: Timeout = Timeout.create(
       context.system.settings.config
         .getDuration("telegraft-raft-service.ask-timeout"))
-
-    /*If commitIndex > lastApplied: increment lastApplied, apply
-    log[lastApplied] to state machine (§5.3)*/
 
     s match {
       case Follower(currentTerm, votedFor, log, _, _, leaderId) =>
@@ -397,20 +372,12 @@ object RaftServer {
               case None => Effect.stash()
             }
           case ElectionTimeout =>
-            startElection(s, serverId, context)
+            startElection(timer, s, serverId, context)
           case rpc =>
-            commonReceiverImpl(serverId, rpc, currentTerm, log, votedFor)
+            commonReceiverImpl(serverId, rpc, currentTerm, log, votedFor, timer)
         }
-      case Leader(
-            currentTerm,
-            votedFor,
-            log,
-            commitIndex,
-            lastApplied,
-            nextIndex,
-            _) =>
+      case Leader(currentTerm, votedFor, log, _, lastApplied, nextIndex, _) =>
         Effect.unstashAll()
-        // TODO: pipeToSelf message if last applied is higher than than commit index
 
         c match {
 
@@ -450,6 +417,8 @@ object RaftServer {
                     }
                   }
               }
+              .thenRun(_ =>
+                timer.startSingleTimer(ElectionTimeout, randomTimeout))
               .thenNoReply()
 
           case AppendEntriesResponse(term, receiverId, lastLogEntry, success) =>
@@ -547,19 +516,19 @@ object RaftServer {
           case WrappedClientResponse(response, replyTo) =>
             Effect.reply(replyTo)(StatusReply.Success(response))
           case rpc =>
-            commonReceiverImpl(serverId, rpc, currentTerm, log, votedFor)
+            commonReceiverImpl(serverId, rpc, currentTerm, log, votedFor, timer)
         }
       case Candidate(currentTerm, votedFor, log, _, _, _) =>
         c match {
           case ElectionTimeout =>
-            startElection(s, serverId, context)
+            startElection(timer, s, serverId, context)
           case RequestVoteResponse(term, voteGranted) =>
             Effect
               .persist(RequestVoteResponseEvent(term, voteGranted))
               .thenNoReply()
           case ClientRequest(_, _) => Effect.stash()
           case rpc =>
-            commonReceiverImpl(serverId, rpc, currentTerm, log, votedFor)
+            commonReceiverImpl(serverId, rpc, currentTerm, log, votedFor, timer)
         }
     }
   }

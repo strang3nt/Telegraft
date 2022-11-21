@@ -98,10 +98,10 @@ object RaftState {
 
           this.copy(
             log = newLog,
-            votedFor = if (term > currentTerm) None else this.votedFor,
             commitIndex = this.updateCommitIndex(leaderCommit, newLog),
             currentTerm = if (term > currentTerm) term else currentTerm,
-            leaderId = Some(leaderId))
+            leaderId =
+              if (term > currentTerm) Some(leaderId) else this.leaderId)
         case VoteExpressed(term, candidateId, voteResult) =>
           if (voteResult)
             this.copy(
@@ -140,8 +140,7 @@ object RaftState {
         prevLogIndex,
         log.logEntries(prevLogIndex.toInt)._2,
         log.logEntries.drop(prevLogIndex.toInt).map { case (payload, term) =>
-          LogEntry(0, term, Some(LogEntryPayload(payload.convertToGRPC)))
-
+          LogEntry(term, Some(LogEntryPayload(payload.convertToGRPC)))
         },
         commitIndex)
     }

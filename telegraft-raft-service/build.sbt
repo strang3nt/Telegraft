@@ -10,7 +10,9 @@ Compile / scalacOptions ++= Seq(
   "-feature",
   "-unchecked",
   "-Xlog-reflective-calls",
-  "-Xlint")
+  "-Xlint",
+  "-language:implicitConversions")
+
 Compile / javacOptions ++= Seq("-Xlint:unchecked", "-Xlint:deprecation")
 
 Test / parallelExecution := false

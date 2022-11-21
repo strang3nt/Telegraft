@@ -15,9 +15,7 @@ import com.telegraft.statemachine.proto.{
   SendMessageResponse,
   Message => ProtoMessage
 }
-
 import scala.collection.immutable
-import scala.language.implicitConversions
 
 final case class Log(logEntries: immutable.Vector[(LogEntryPayLoad, Long)]) {
 
