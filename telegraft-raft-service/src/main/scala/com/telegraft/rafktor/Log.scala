@@ -1,5 +1,6 @@
 package com.telegraft.rafktor
 
+import com.fasterxml.jackson.annotation.{ JsonSubTypes, JsonTypeInfo }
 import com.telegraft.rafktor.Log.LogEntryPayLoad
 import com.telegraft.rafktor.proto.{ LogEntryPayload => ProtoLogEntryPayload }
 import com.telegraft.statemachine.proto.{
@@ -15,9 +16,14 @@ import com.telegraft.statemachine.proto.{
   SendMessageResponse,
   Message => ProtoMessage
 }
+
 import scala.collection.immutable
 
-final case class Log(logEntries: immutable.Vector[(LogEntryPayLoad, Long)]) {
+final case class Log(logEntries: immutable.Vector[(LogEntryPayLoad, Long)])
+    extends CborSerializable {
+
+  def lastLogIndex: Int = logEntries.length - 1
+  def lastLogTerm: Long = if (logEntries.nonEmpty) logEntries.last._2 else -1
 
   def appendEntry(term: Long, payload: Log.LogEntryPayLoad): Log =
     this.copy(logEntries = this.logEntries :+ (payload, term))
@@ -26,14 +32,12 @@ final case class Log(logEntries: immutable.Vector[(LogEntryPayLoad, Long)]) {
     this.copy(logEntries = this.logEntries ++ newEntries.logEntries.drop(
       this.logEntries.length - 1 - prevLogIndex))
 
-  def entryIsConflicting(log: Log, index: Int, term: Long): Boolean =
-    log.logEntries(index)._2 != term
-
   def removeConflictingEntries(newEntries: Log, prevLogIndex: Int): Log = {
     this.copy(logEntries = this.logEntries.zipWithIndex
       .takeWhile {
         case (entry, index) if index > prevLogIndex =>
-          !entryIsConflicting(newEntries, index - prevLogIndex - 1, entry._2)
+          !Log
+            .entryIsConflicting(newEntries, index - prevLogIndex - 1, entry._2)
         case _ => true
       }
       .map(_._1))
@@ -51,11 +55,37 @@ final case class Log(logEntries: immutable.Vector[(LogEntryPayLoad, Long)]) {
 }
 object Log {
 
+  def entryIsConflicting(
+      conflictingLog: Log,
+      index: Int,
+      term: Long): Boolean = {
+
+    try conflictingLog.logEntries(index)._2 != term
+    catch {
+      // if the entry is not part of the log entirely then it is not conflicting
+      case _: Exception => false
+    }
+  }
   def empty: Log = Log(Vector.empty[(LogEntryPayLoad, Long)])
+
+  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+  @JsonSubTypes(
+    Array(
+      new JsonSubTypes.Type(value = classOf[TelegraftRequest], name = "lion")))
   sealed trait LogEntryPayLoad {
     def convertToGRPC: com.telegraft.rafktor.proto.LogEntryPayload.Payload
   }
 
+  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+  @JsonSubTypes(
+    Array(
+      new JsonSubTypes.Type(value = classOf[CreateUser], name = "createUser"),
+      new JsonSubTypes.Type(value = classOf[SendMessage], name = "sendMessage"),
+      new JsonSubTypes.Type(value = classOf[JoinChat], name = "joinChat"),
+      new JsonSubTypes.Type(value = classOf[CreateChat], name = "createChat"),
+      new JsonSubTypes.Type(
+        value = classOf[GetMessages],
+        name = "getMessages")))
   sealed trait TelegraftRequest extends LogEntryPayLoad
 
   final case class CreateUser(userName: String) extends TelegraftRequest {
@@ -112,7 +142,6 @@ object Log {
       chatId: String,
       content: String,
       sentTime: java.time.Instant)
-      extends CborSerializable
   object Message extends ConvertFromGRPC[ProtoMessage, Message] {
     override implicit def convertFromGRPC(grpc: ProtoMessage): Message =
       Message(
@@ -122,6 +151,16 @@ object Log {
         grpc.sentTime.get.asJavaInstant)
   }
 
+  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+  @JsonSubTypes(
+    Array(
+      new JsonSubTypes.Type(value = classOf[UserCreated], name = "userCreated"),
+      new JsonSubTypes.Type(value = classOf[MessageSent], name = "messageSent"),
+      new JsonSubTypes.Type(value = classOf[ChatCreated], name = "chatCreated"),
+      new JsonSubTypes.Type(value = classOf[ChatJoined], name = "chatJoined"),
+      new JsonSubTypes.Type(
+        value = classOf[MessagesRetrieved],
+        name = "messageRetrieved")))
   sealed trait TelegraftResponse
 
   final case class UserCreated(

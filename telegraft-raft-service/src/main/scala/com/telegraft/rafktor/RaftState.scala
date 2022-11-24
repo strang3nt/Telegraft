@@ -54,20 +54,19 @@ sealed trait RaftState extends CborSerializable {
       lastApplied = this.lastApplied,
       countVotes = 1)
 
-  protected def becomeLeader: Leader =
+  protected def becomeLeader(config: Configuration): Leader =
     Leader(
       currentTerm = this.currentTerm,
       votedFor = None,
       log = this.log,
       commitIndex = this.commitIndex,
       lastApplied = this.lastApplied,
-      nextIndex =
-        Map.from[String, Long](Configuration.getConfiguration.map(server =>
-          (server.id, log.logEntries.length))),
-      matchIndex = Map.from[String, Long](
-        Configuration.getConfiguration.map(server => (server.id, -1))))
+      nextIndex = Map.from[String, Long](config.getConfiguration.map(server =>
+        (server.id, log.logEntries.length))),
+      matchIndex = Map.from[String, Long](config.getConfiguration.map(server =>
+        (server.id, -1))))
 
-  def applyEvent(event: Event): RaftState
+  def applyEvent(event: Event, config: Configuration): RaftState
 
 }
 
@@ -83,7 +82,7 @@ object RaftState {
       leaderId: Option[String])
       extends RaftState {
 
-    override def applyEvent(event: Event): RaftState = {
+    override def applyEvent(event: Event, config: Configuration): RaftState = {
       event match {
         case EntriesAppended(
               term,
@@ -150,25 +149,26 @@ object RaftState {
      * and log[N].term == currentTerm else return commitIndex
      */
     private def updateCommitIndex(
-        updatedMatchIndex: Map[String, Long]): Long = {
+        updatedMatchIndex: Map[String, Long],
+        config: Configuration): Long = {
 
       val N = log.logEntries.zipWithIndex
         .drop((commitIndex + 1).toInt)
         .lastIndexWhere { case ((_, term), i) =>
           term <= currentTerm && updatedMatchIndex.count(
-            _._2 >= i) >= Configuration.majority
+            _._2 >= i) >= config.majority
         }
       if (N > commitIndex) N else commitIndex
     }
-    override def applyEvent(event: Event): RaftState = {
+    override def applyEvent(event: Event, config: Configuration): RaftState = {
       event match {
         case e @ EntriesAppended(term, leaderId, _, _, _) =>
           if (this.currentTerm <= term) {
-            this.convertToFollower(term, Some(leaderId)).applyEvent(e)
+            this.convertToFollower(term, Some(leaderId)).applyEvent(e, config)
           } else this
         // TODO: check AppendEntriesResponseEvent case for correctness
         case AppendEntriesResponseEvent(_, serverId, highestLogEntry, success)
-            if success => {
+            if success =>
           val updatedMatchIndex =
             if (highestLogEntry > this.matchIndex(serverId))
               matchIndex + (serverId -> highestLogEntry)
@@ -177,8 +177,7 @@ object RaftState {
           this.copy(
             nextIndex = nextIndex + (serverId -> (highestLogEntry + 1)),
             matchIndex = updatedMatchIndex,
-            commitIndex = updateCommitIndex(updatedMatchIndex))
-        }
+            commitIndex = updateCommitIndex(updatedMatchIndex, config))
         case AppendEntriesResponseEvent(term, serverId, _, success)
             if !success =>
           if (term > currentTerm) {
@@ -205,16 +204,16 @@ object RaftState {
       lastApplied: Long,
       countVotes: Int)
       extends RaftState {
-    override def applyEvent(event: Event): RaftState = {
+    override def applyEvent(event: Event, config: Configuration): RaftState = {
       event match {
         case RequestVoteResponseEvent(_, voteGranted) if voteGranted =>
           val newCountVotes = countVotes + 1
-          if (newCountVotes >= Configuration.majority)
-            this.becomeLeader
+          if (newCountVotes >= config.majority)
+            this.becomeLeader(config)
           else this.copy(countVotes = countVotes + 1)
         case e @ EntriesAppended(term, leaderId, _, _, _) =>
           if (this.currentTerm <= term) {
-            this.convertToFollower(term, Some(leaderId)).applyEvent(e)
+            this.convertToFollower(term, Some(leaderId)).applyEvent(e, config)
           } else this
         case ElectionTimeoutElapsed(_, serverId) => becomeCandidate(serverId)
         case other =>

@@ -94,7 +94,7 @@ object RaftServer {
       replyTo: ActorRef[StatusReply[TelegraftResponse]])
       extends Command
 
-  sealed trait Event {
+  sealed trait Event extends CborSerializable {
     val term: Long
   }
 
@@ -165,7 +165,7 @@ object RaftServer {
               state.currentTerm,
               serverId,
               state.log.logEntries.length - 1,
-              success = !log.entryIsConflicting(
+              success = !Log.entryIsConflicting(
                 log,
                 rpc.prevLogIndex.toInt,
                 rpc.prevLogTerm)))
@@ -397,8 +397,8 @@ object RaftServer {
                         proto.AppendEntriesRequest(
                           state.currentTerm,
                           serverId,
-                          state.log.logEntries.length - 1,
-                          state.log.logEntries.last._2,
+                          state.log.lastLogIndex,
+                          state.log.lastLogTerm,
                           Seq.empty,
                           state.commitIndex))))
                   .foreach { case (server, future) =>
@@ -407,7 +407,7 @@ object RaftServer {
                         RaftServer.AppendEntriesResponse(
                           response.term,
                           server.id,
-                          state.log.logEntries.length - 1,
+                          state.log.lastLogIndex,
                           response.success)
 
                       case Failure(_) =>
@@ -549,7 +549,7 @@ object RaftServer {
                 stateMachine,
                 state,
                 event),
-            eventHandler = (state, event) => state.applyEvent(event))
+            eventHandler = (state, event) => state.applyEvent(event, config))
           .receiveSignal { case (_, RecoveryCompleted) =>
             timers.startSingleTimer(ElectionTimeout, randomTimeout)
           }
