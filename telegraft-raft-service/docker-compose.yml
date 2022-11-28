@@ -1,0 +1,36 @@
+services:
+  node-1:
+    image: telegraft-raft-service:latest
+    restart: always
+    environment:
+      GRPC_PORT: 8350
+      NODE1_HOST: 0.0.0.0
+      NODE1_PORT: 8351
+      NODE2_HOST: 0.0.0.0
+      NODE2_PORT: 8352
+    ports:
+      - "8350:8350"
+
+  node-2:
+    image: telegraft-raft-service:latest
+    restart: always
+    environment:
+      GRPC_PORT: 8351
+      NODE1_HOST: 0.0.0.0
+      NODE1_PORT: 8350
+      NODE2_HOST: 0.0.0.0
+      NODE2_PORT: 8352
+    ports:
+      - "8351:8351"
+
+  node-3:
+    image: telegraft-raft-service:latest
+    restart: always
+    environment:
+      GRPC_PORT: 8352
+      NODE1_HOST: 0.0.0.0
+      NODE1_PORT: 8350
+      NODE2_HOST: 0.0.0.0
+      NODE2_PORT: 8351
+    ports:
+      - "8352:8352"

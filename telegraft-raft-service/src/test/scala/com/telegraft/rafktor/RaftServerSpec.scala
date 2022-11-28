@@ -113,7 +113,7 @@ class RaftServerSpec
     "If the follower does not find an entry in its log with the same index and term, then it refuses the new entries" in {}
     "conflicting entries in follower are overwritten by leader's" in {}
     "leader looks for last non conflicting entry" in {}
-    "if append entry has succeded it means that follower's log is consistent to leader's log, up to last sent entry" in {}
+    "if append entry has succeeded it means that follower's log is consistent to leader's log, up to last sent entry" in {}
   }
   "Leader Completeness" should {
     "If the candidate’s log is at least as up-to-date as any other log in that majority, then it will hold all the committed entries" in {}

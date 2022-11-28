@@ -4,33 +4,24 @@ import akka.actor.typed.ActorSystem
 import scala.jdk.CollectionConverters._
 
 object Configuration {
-  def apply(system: ActorSystem[_]): Unit = {
+  def apply(system: ActorSystem[_]): Configuration = {
 
     val configuration = new Configuration
 
     val newConfig =
-      system.settings.config
-        .getList("raft")
-        .unwrapped()
-        .asScala
-        .map { x =>
-          x.asInstanceOf[java.util.Map[String, AnyRef]].asScala.map {
-            case (_, value) =>
-              val hostPortMap =
-                value.asInstanceOf[java.util.Map[String, AnyRef]].asScala
-              val host = hostPortMap("host").toString
-              val port = hostPortMap("port").asInstanceOf[Int]
-              host + ":" + port -> (host, port)
-          }
-        }
-        .reduceLeft(_ ++ _)
+      system.settings.config.getObject("raft").unwrapped().asScala.map { case (node, address) =>
+        val hostAndPort = address.asInstanceOf[java.util.Map[String, AnyRef]].asScala
+        val host = hostAndPort("host").toString
+        val port = hostAndPort("port").asInstanceOf[Int]
+        host + ":" + port -> (host, port)
+      }
     configuration.defaultConfig = configuration.defaultConfig ++ newConfig
 
-    configuration.nodes = configuration.defaultConfig.map {
-      case (_, (host, port)) =>
-        new Server(host, port)(system)
+    configuration.nodes = configuration.defaultConfig.map { case (_, (host, port)) =>
+      new Server(host, port)(system)
     }.toSet
 
+    configuration
   }
 }
 
