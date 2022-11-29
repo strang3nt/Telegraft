@@ -27,16 +27,11 @@ val AkkaHttpVersion = "10.4.0"
 val AkkaManagementVersion = "1.2.0"
 val AkkaPersistenceJdbcVersion = "5.2.0"
 val AkkaProjectionVersion = "1.3.0"
-val LogBackVersion = "1.4.4"
+val LogBackVersion = "1.4.5"
 val ScalaTestVersion = "3.2.14"
-val PostgresqlVersion = "42.5.0"
+val PostgresqlVersion = "42.5.1"
 
-enablePlugins(
-  AshScriptPlugin,
-  AkkaGrpcPlugin,
-  JavaAppPackaging,
-  DockerPlugin,
-  UniversalPlugin)
+enablePlugins(AshScriptPlugin, AkkaGrpcPlugin, JavaAppPackaging, DockerPlugin, UniversalPlugin)
 
 Universal / javaOptions += "-Dconfig.resource=local.conf"
 dockerUpdateLatest := true

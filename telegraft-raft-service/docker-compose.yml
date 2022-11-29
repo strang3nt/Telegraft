@@ -1,8 +1,13 @@
+version: "3.9"
 services:
-  node-1:
+
+  raft-1:
     image: telegraft-raft-service:latest
     restart: always
+    depends_on:
+      - statemachine-1
     environment:
+      STATEMACHINE_PORT: 8301
       GRPC_PORT: 8350
       NODE1_HOST: 0.0.0.0
       NODE1_PORT: 8351
@@ -10,27 +15,117 @@ services:
       NODE2_PORT: 8352
     ports:
       - "8350:8350"
+    networks:
+      - cluster-1
 
-  node-2:
-    image: telegraft-raft-service:latest
+  statemachine-1:
+    image: telegraft-statemachine-service:latest
+    restart: always
+    depends_on:
+      - postgres-db-test-1
+    environment:
+      DB_NAME: telegraft
+      DB_USER: postgresuser
+      DB_PASS: password
+      DB_SERVER: postgres-db-test-1
+      DB_PORT: 5432
+    ports:
+      - "8301:8301"
+    networks:
+      - cluster-1
+
+  postgres-db-test-1:
+    image: postgres:alpine
     restart: always
     environment:
-      GRPC_PORT: 8351
-      NODE1_HOST: 0.0.0.0
-      NODE1_PORT: 8350
-      NODE2_HOST: 0.0.0.0
-      NODE2_PORT: 8352
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgresuser
+      POSTGRES_DB: telegraft
     ports:
-      - "8351:8351"
+      - "5432:5432"
+    volumes:
+      - ../telegraft-statemachine-service/src/main/resources/db:/docker-entrypoint-initdb.d
+    networks:
+      - cluster-1
 
-  node-3:
-    image: telegraft-raft-service:latest
-    restart: always
-    environment:
-      GRPC_PORT: 8352
-      NODE1_HOST: 0.0.0.0
-      NODE1_PORT: 8350
-      NODE2_HOST: 0.0.0.0
-      NODE2_PORT: 8351
-    ports:
-      - "8352:8352"
+networks:
+  cluster-1:
+
+#  node-2:
+#    image: telegraft-raft-service:latest
+#    restart: always
+#    depends_on:
+#      - postgres-db-test-2
+#    environment:
+#      STATEMACHINE_PORT: 8302
+#      GRPC_PORT: 8351
+#      NODE1_HOST: 0.0.0.0
+#      NODE1_PORT: 8350
+#      NODE2_HOST: 0.0.0.0
+#      NODE2_PORT: 8352
+#    ports:
+#      - "8351:8351"
+#  statemachine-2:
+#    image: telegraft-statemachine-service:latest
+#    restart: always
+#    depends_on:
+#      - postgres-db-test-2
+#    environment:
+#      DB_NAME: telegraft
+#      DB_USER: postgresuser
+#      DB_PASS: password
+#      DB_SERVER: postgres-db
+#      DB_PORT: 5433
+#    ports:
+#      - "8302:8301"
+#  postgres-db-test-2:
+#    image: postgres:alpine
+#    restart: always
+#    environment:
+#      POSTGRES_PASSWORD: password
+#      POSTGRES_USER: postgresuser
+#      POSTGRES_DB: telegraft
+#    ports:
+#      - "5433:5432"
+#    volumes:
+#      - ../telegraft-statemachine-service/src/main/resources/db:/docker-entrypoint-initdb.d
+#
+#  node-3:
+#    image: telegraft-raft-service:latest
+#    restart: always
+#    depends_on:
+#      - statemachine-3
+#    environment:
+#      STATEMACHINE_PORT: 8303
+#      GRPC_PORT: 8352
+#      NODE1_HOST: 0.0.0.0
+#      NODE1_PORT: 8350
+#      NODE2_HOST: 0.0.0.0
+#      NODE2_PORT: 8351
+#    ports:
+#      - "8352:8352"
+#  statemachine-3:
+#    image: telegraft-statemachine-service:latest
+#    restart: always
+#    depends_on:
+#      - postgres-db-test-3
+#    environment:
+#      DB_NAME: telegraft
+#      DB_USER: postgresuser
+#      DB_PASS: password
+#      DB_SERVER: postgres-db
+#      DB_PORT: 5434
+#    ports:
+#      - "8303:8301"
+#  postgres-db-test-3:
+#    image: postgres:alpine
+#    restart: always
+#    environment:
+#      POSTGRES_PASSWORD: password
+#      POSTGRES_USER: postgresuser
+#      POSTGRES_DB: telegraft
+#    ports:
+#      - "5434:5432"
+#    volumes:
+#      - ../telegraft-statemachine-service/src/main/resources/db:/docker-entrypoint-initdb.d
+

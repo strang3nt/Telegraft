@@ -1,0 +1,64 @@
+package com.telegraft.rafktor
+
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.scaladsl.{ ActorContext, Behaviors }
+import akka.grpc.GrpcClientSettings
+import akka.management.cluster.bootstrap.ClusterBootstrap
+import akka.management.scaladsl.AkkaManagement
+import com.telegraft.statemachine.proto.TelegraftStateMachineServiceClient
+import org.slf4j.LoggerFactory
+
+import scala.util.control.NonFatal
+
+object Main {
+
+  val logger = LoggerFactory.getLogger("com.telegraft.rafktor.Main")
+
+  def main(args: Array[String]): Unit = {
+    ActorSystem[Nothing](
+      Behaviors.setup[Nothing] { ctx =>
+        try {
+          init(ctx)
+          Behaviors.empty
+        } catch {
+          case NonFatal(e) =>
+            logger.error("Terminating due to initialization failure.", e)
+            ctx.system.terminate()
+            Behaviors.empty
+        }
+      },
+      "TelegraftRaftService")
+  }
+
+  def init(context: ActorContext[_]): Unit = {
+
+    implicit val system: ActorSystem[Nothing] = context.system
+
+    AkkaManagement(system).start()
+    ClusterBootstrap(system).start()
+
+    val grpcClient =
+      GrpcClientSettings
+        .connectToServiceAt(
+          system.settings.config.getString("telegraft-statemachine-service.host"),
+          system.settings.config.getInt("telegraft-statemachine-service.port"))
+        // Tls set to false means no encryption over HTTP/2
+        .withTls(false)
+
+    val telegraftGrpcClient: TelegraftStateMachineServiceClient =
+      TelegraftStateMachineServiceClient(grpcClient)
+
+    val config = Configuration(system)
+
+    val stateMachine = context.spawn(StateMachine(telegraftGrpcClient), "StateMachine")
+    val raftNode = context.spawnAnonymous(RaftServer.apply("raftServer", stateMachine, config))
+
+    val grpcInterface =
+      system.settings.config.getString("telegraft-raft-service.grpc.interface")
+    val grpcPort =
+      system.settings.config.getInt("telegraft-raft-service.grpc.port")
+    val grpcService = new RaftServiceImpl(raftNode)
+    TelegraftRaftServer.start(grpcInterface, grpcPort, system, grpcService)
+  }
+
+}

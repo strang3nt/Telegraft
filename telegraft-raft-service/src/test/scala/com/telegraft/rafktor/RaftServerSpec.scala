@@ -14,15 +14,15 @@ import scala.concurrent.duration.DurationInt
 object RaftServerSpec {
   val config: Config = ConfigFactory
     .parseString(s"""
+       include "raft"
+
        akka.actor.serialization-bindings {
          "com.telegraft.rafktor.CborSerializable" = jackson-cbor
        }
        telegraft-raft-service {
          ask-timeout = 3 s
        }
-      akka.persistence.snapshot-store.plugin = "akka.persistence.snapshot-store.local"
-      akka.persistence.snapshot-store.local.dir = "target/snapshot-${java.util.UUID.randomUUID().toString}"
-      """)
+       """)
     .withFallback(EventSourcedBehaviorTestKit.config)
     .resolve()
 }
@@ -37,7 +37,7 @@ class RaftServerSpec
   private val eventSourcedTestKit =
     EventSourcedBehaviorTestKit[RaftServer.Command, RaftServer.Event, RaftState](
       system,
-      RaftServer(raftServerId, stateMachine, new Configuration))
+      RaftServer(raftServerId, stateMachine, Configuration.apply(system)))
 
   val mockPayload: Log.CreateUser = Log.CreateUser("TestUser")
   override protected def beforeEach(): Unit = {

@@ -12,7 +12,7 @@ object Configuration {
       system.settings.config.getObject("raft").unwrapped().asScala.map { case (node, address) =>
         val hostAndPort = address.asInstanceOf[java.util.Map[String, AnyRef]].asScala
         val host = hostAndPort("host").toString
-        val port = hostAndPort("port").asInstanceOf[Int]
+        val port = hostAndPort("port").toString.toInt
         host + ":" + port -> (host, port)
       }
     configuration.defaultConfig = configuration.defaultConfig ++ newConfig

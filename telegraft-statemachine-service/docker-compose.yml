@@ -8,21 +8,21 @@ services:
       DB_NAME: telegraft
       DB_USER: postgresuser
       DB_PASS: password
-      DB_SERVER: postgres-db
-      DB_PORT: 5432
+      DB_SERVER: postgres-db-test
+      DB_PORT: 5433
     ports:
       - "8301:8301"
-  postgres-db:
-    image: postgres:alpine
-    restart: always
-    environment:
-      POSTGRES_PASSWORD: password
-      POSTGRES_USER: postgresuser
-      POSTGRES_DB: telegraft
+#  postgres-db:
+#    image: postgres:alpine
+#    restart: always
+#    environment:
+#      POSTGRES_PASSWORD: password
+#      POSTGRES_USER: postgresuser
+#      POSTGRES_DB: telegraft
 #    ports:
 #      - "5432:5432"
-    volumes:
-      - ./src/main/resources/db:/docker-entrypoint-initdb.d
+#    volumes:
+#      - ./src/main/resources/db:/docker-entrypoint-initdb.d
 
   postgres-db-test:
     image: postgres:alpine
