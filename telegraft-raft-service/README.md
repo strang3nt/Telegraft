@@ -52,6 +52,14 @@ Clients can query each one of the replicas, and they will get a response:
 
 ### Timeouts
 
+### Log
+
+There is a Log class, which wraps a collection of tuples of:
+
+ - the log item (payload or request)
+ - the term the log item was added
+ - the client waiting for the response to the payload.
+
 ## Further development and investigation
 
  - InstallSnapshotRPC

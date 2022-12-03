@@ -9,8 +9,15 @@ import com.telegraft.statemachine.proto.TelegraftStateMachineServiceClient
  * A server instance is the representation of a Raft node
  * in the cluster. Each server holds its own address
  */
-class Server(host: String, port: Int)(
-    implicit private val system: ActorSystem[_]) {
+trait Server {
+  def host: String
+  def port: Int
+  def id: String
+  def raftGrpcClient: TelegraftRaftServiceClient
+  def telegraftGrpcClient: TelegraftStateMachineServiceClient
+}
+
+class ServerImpl(val host: String, val port: Int)(implicit private val system: ActorSystem[_]) extends Server {
 
   val id: String = host + ":" + port
 

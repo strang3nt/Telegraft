@@ -18,7 +18,7 @@ object Configuration {
     configuration.defaultConfig = configuration.defaultConfig ++ newConfig
 
     configuration.nodes = configuration.defaultConfig.map { case (_, (host, port)) =>
-      new Server(host, port)(system)
+      new ServerImpl(host, port)(system)
     }.toSet
 
     configuration

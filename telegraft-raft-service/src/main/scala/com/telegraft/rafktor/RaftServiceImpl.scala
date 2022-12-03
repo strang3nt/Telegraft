@@ -88,8 +88,7 @@ class RaftServiceImpl(raftNode: ActorRef[RaftServer.Command])(
   }
 
   private def fromLogEntriesToLog(logEntries: Seq[LogEntry]): Log =
-    Log(
-      logEntries
+    Log(logEntries
         .map(l => (logEntryPayloadTranslator(l.getType), l.term))
         .collect { case (Some(payload), term) =>
           (payload, term)
