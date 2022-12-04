@@ -19,20 +19,16 @@ import com.telegraft.statemachine.proto.{
   Message => ProtoMessage
 }
 
-final case class Log(val logEntries: Vector[(LogEntryPayLoad, Long, Option[ActorRef[StatusReply[TelegraftResponse]]])])
-    extends CborSerializable {
+final case class Log(val logEntries: Vector[(LogEntryPayLoad, Long)]) extends CborSerializable {
 
-  def apply(index: Int): (LogEntryPayLoad, Long, Option[ActorRef[StatusReply[TelegraftResponse]]]) = logEntries(index)
+  def apply(index: Int): (LogEntryPayLoad, Long) = logEntries(index)
   def length: Int = logEntries.length
 
   def lastLogIndex: Int = logEntries.length - 1
   def lastLogTerm: Long = if (logEntries.nonEmpty) logEntries.last._2 else -1
 
-  def appendEntry(
-      term: Long,
-      payload: Log.LogEntryPayLoad,
-      actorRef: Option[ActorRef[StatusReply[TelegraftResponse]]]): Log =
-    this.copy(logEntries = this.logEntries :+ (payload, term, actorRef))
+  def appendEntry(term: Long, payload: Log.LogEntryPayLoad): Log =
+    this.copy(logEntries = this.logEntries :+ (payload, term))
 
   def appendEntries(newEntries: Log, prevLogIndex: Int): Log =
     this.copy(logEntries = this.logEntries ++ newEntries.logEntries.drop(this.logEntries.length - 1 - prevLogIndex))
@@ -65,7 +61,7 @@ object Log {
       case _: Exception => false
     }
   }
-  def empty: Log = Log(Vector.empty[(LogEntryPayLoad, Long, Option[ActorRef[StatusReply[TelegraftResponse]]])])
+  def empty: Log = Log(Vector.empty[(LogEntryPayLoad, Long)])
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes(Array(new JsonSubTypes.Type(value = classOf[TelegraftRequest], name = "lion")))

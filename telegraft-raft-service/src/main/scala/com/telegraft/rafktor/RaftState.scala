@@ -120,7 +120,7 @@ object RaftState {
         leaderId,
         prevLogIndex,
         log(prevLogIndex.toInt + 1)._2,
-        log.logEntries.drop(prevLogIndex.toInt).map { case (payload, term, _) =>
+        log.logEntries.drop(prevLogIndex.toInt).map { case (payload, term) =>
           LogEntry(term, Some(LogEntryPayload(payload.convertToGRPC)))
         },
         commitIndex)
@@ -132,7 +132,7 @@ object RaftState {
      */
     private def updateCommitIndex(updatedMatchIndex: Map[String, Long], config: Configuration): Long = {
 
-      val N = log.logEntries.zipWithIndex.drop((commitIndex + 1).toInt).lastIndexWhere { case ((_, term, _), i) =>
+      val N = log.logEntries.zipWithIndex.drop((commitIndex + 1).toInt).lastIndexWhere { case ((_, term), i) =>
         term <= currentTerm && updatedMatchIndex.count(_._2 >= i) >= config.majority
       }
       if (N > commitIndex) N else commitIndex
@@ -162,7 +162,7 @@ object RaftState {
             this.copy(nextIndex = nextIndex + (serverId -> (nextIndex(serverId) - 1)))
           }
         case ClientRequestEvent(term, payload, replyTo) =>
-          this.copy(log = this.log.appendEntry(term, payload, Some(replyTo)))
+          this.copy(log = this.log.appendEntry(term, payload))
         case other =>
           if (this.currentTerm < other.term)
             this.convertToFollower(other.term)

@@ -28,7 +28,7 @@ message LogEntry {
 
 }
 
-// AppendEntriesRequest maps to the raft AppendEntriesRequest.
+// AppendEntriesRequest maps to the raft AppendEntries RPC.
 message AppendEntriesRequest {
   // Term is the current election term.
   uint64 term = 1;
@@ -45,7 +45,7 @@ message AppendEntriesRequest {
 
 }
 
-// AppendEntriesResponse is the response to the appendentries request.
+// AppendEntriesResponse is the response to the AppendEntries RPC request.
 message AppendEntriesResponse {
   // Term is the newer term if the leader is out of date.
   uint64 term = 1;
