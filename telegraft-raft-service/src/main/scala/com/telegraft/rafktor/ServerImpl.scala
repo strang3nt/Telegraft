@@ -2,8 +2,7 @@ package com.telegraft.rafktor
 
 import akka.actor.typed.ActorSystem
 import akka.grpc.GrpcClientSettings
-import com.telegraft.rafktor.proto.TelegraftRaftServiceClient
-import com.telegraft.statemachine.proto.TelegraftStateMachineServiceClient
+import com.telegraft.rafktor.proto.{ TelegraftRaftClientServiceClient, TelegraftRaftServiceClient }
 
 /**
  * A server instance is the representation of a Raft node
@@ -14,7 +13,7 @@ trait Server {
   def port: Int
   def id: String
   def raftGrpcClient: TelegraftRaftServiceClient
-  def telegraftGrpcClient: TelegraftStateMachineServiceClient
+  def raftClientGrpcClient: TelegraftRaftClientServiceClient
 }
 
 class ServerImpl(val host: String, val port: Int)(implicit private val system: ActorSystem[_]) extends Server {
@@ -30,7 +29,7 @@ class ServerImpl(val host: String, val port: Int)(implicit private val system: A
   val raftGrpcClient: TelegraftRaftServiceClient =
     TelegraftRaftServiceClient(grpcClient)
 
-  val telegraftGrpcClient: TelegraftStateMachineServiceClient =
-    TelegraftStateMachineServiceClient(grpcClient)
+  val raftClientGrpcClient: TelegraftRaftClientServiceClient =
+    TelegraftRaftClientServiceClient(grpcClient)
 
 }

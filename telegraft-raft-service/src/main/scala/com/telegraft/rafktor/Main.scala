@@ -57,8 +57,9 @@ object Main {
       system.settings.config.getString("telegraft-raft-service.grpc.interface")
     val grpcPort =
       system.settings.config.getInt("telegraft-raft-service.grpc.port")
-    val grpcService = new RaftServiceImpl(raftNode)
-    TelegraftRaftServer.start(grpcInterface, grpcPort, system, grpcService)
+    val raftService = new RaftServiceImpl(raftNode)
+    val raftClientService = new RaftClientServiceImpl(raftNode, stateMachine)
+    TelegraftRaftServer.start(grpcInterface, grpcPort, system, raftService, raftClientService)
   }
 
 }

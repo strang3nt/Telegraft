@@ -1,5 +1,6 @@
 package com.telegraft.rafktor
 
+import com.telegraft.rafktor.Log.TelegraftResponse.convertToGrpc
 import com.telegraft.rafktor.RaftServer.{
   AppendEntriesResponseEvent,
   AppliedToStateMachine,
@@ -10,7 +11,7 @@ import com.telegraft.rafktor.RaftServer.{
   RequestVoteResponseEvent,
   VoteExpressed
 }
-import com.telegraft.rafktor.proto.{ AppendEntriesRequest, LogEntry, LogEntryPayload }
+import com.telegraft.rafktor.proto.{ AppendEntriesRequest, LogEntry, LogEntryPayload, LogEntryResponse }
 
 sealed trait RaftState extends CborSerializable {
 
@@ -77,7 +78,14 @@ object RaftState {
 
     override def applyEvent(event: Event, config: Configuration): RaftState = {
       event match {
-        case AppliedToStateMachine(_, requestsApplied) => this.copy(lastApplied = lastApplied + requestsApplied)
+        case AppliedToStateMachine(_, logIndex, _, telegraftResponse) =>
+          this.copy(
+            log = Log(log.logEntries.zipWithIndex.map {
+              case (Log.LogEntry(load, l, maybeTuple, None), index) if logIndex == index =>
+                Log.LogEntry(load, l, maybeTuple, Some(telegraftResponse))
+              case other => other._1
+            }),
+            lastApplied = if (lastApplied > logIndex) lastApplied else logIndex)
         case EntriesAppended(term, leaderId, prevLogIndex, leaderCommit, entries) =>
           val newLog =
             this.log.removeConflictingEntries(entries, prevLogIndex.toInt).appendEntries(entries, prevLogIndex.toInt)
@@ -94,6 +102,8 @@ object RaftState {
             this.copy(
               currentTerm = if (term > currentTerm) term else currentTerm,
               votedFor = if (term > currentTerm) None else this.votedFor)
+        case ClientRequestEvent(term, payload, clientRequest) =>
+          this.copy(log = this.log.appendEntry(term, payload, clientRequest))
         case ElectionTimeoutElapsed(_, serverId) =>
           becomeCandidate(serverId)
         case other =>
@@ -119,9 +129,17 @@ object RaftState {
         currentTerm,
         leaderId,
         prevLogIndex,
-        log(prevLogIndex.toInt + 1)._2,
-        log.logEntries.drop(prevLogIndex.toInt).map { case (payload, term) =>
-          LogEntry(term, Some(LogEntryPayload(payload.convertToGRPC)))
+        log(prevLogIndex.toInt + 1).term,
+        log.logEntries.drop(prevLogIndex.toInt).map {
+          case Log.LogEntry(payload, term, Some((clientId, requestId)), maybeTelegraftResponse) =>
+            LogEntry(
+              term,
+              Some(LogEntryPayload(payload.convertToGrpc())),
+              Some(proto.ClientRequest(clientId, requestId)),
+              if (maybeTelegraftResponse.isDefined) Some(LogEntryResponse(convertToGrpc(maybeTelegraftResponse.get)))
+              else None)
+          case Log.LogEntry(payload, term, None, _) =>
+            LogEntry(term, Some(LogEntryPayload(payload.convertToGrpc())), None, None)
         },
         commitIndex)
     }
@@ -132,14 +150,22 @@ object RaftState {
      */
     private def updateCommitIndex(updatedMatchIndex: Map[String, Long], config: Configuration): Long = {
 
-      val N = log.logEntries.zipWithIndex.drop((commitIndex + 1).toInt).lastIndexWhere { case ((_, term), i) =>
-        term <= currentTerm && updatedMatchIndex.count(_._2 >= i) >= config.majority
+      val N = log.logEntries.zipWithIndex.drop((commitIndex + 1).toInt).lastIndexWhere {
+        case (Log.LogEntry(_, term, _, _), i) =>
+          term <= currentTerm && updatedMatchIndex.count(_._2 >= i) >= config.majority
       }
       if (N > commitIndex) N else commitIndex
     }
     override def applyEvent(event: Event, config: Configuration): RaftState = {
       event match {
-        case AppliedToStateMachine(_, requestsApplied) => this.copy(lastApplied = lastApplied + requestsApplied)
+        case AppliedToStateMachine(_, logIndex, _, telegraftResponse) =>
+          this.copy(
+            log = Log(log.logEntries.zipWithIndex.map {
+              case (Log.LogEntry(load, l, maybeTuple, None), index) if logIndex == index =>
+                Log.LogEntry(load, l, maybeTuple, Some(telegraftResponse))
+              case other => other._1
+            }),
+            lastApplied = if (lastApplied > logIndex) lastApplied else logIndex)
         case e @ EntriesAppended(term, leaderId, _, _, _) =>
           if (this.currentTerm <= term) {
             this.convertToFollower(term, Some(leaderId)).applyEvent(e, config)
@@ -161,8 +187,8 @@ object RaftState {
           } else { // term <= currentTerm && !success => log inconsistency
             this.copy(nextIndex = nextIndex + (serverId -> (nextIndex(serverId) - 1)))
           }
-        case ClientRequestEvent(term, payload, replyTo) =>
-          this.copy(log = this.log.appendEntry(term, payload))
+        case ClientRequestEvent(term, payload, clientRequest) =>
+          this.copy(log = this.log.appendEntry(term, payload, clientRequest))
         case other =>
           if (this.currentTerm < other.term)
             this.convertToFollower(other.term)

@@ -4,11 +4,20 @@ import akka.actor.testkit.typed.scaladsl.{ ManualTime, ScalaTestWithActorTestKit
 import akka.actor.typed.scaladsl.Behaviors
 import akka.pattern.StatusReply
 import akka.persistence.testkit.scaladsl.EventSourcedBehaviorTestKit
-import com.telegraft.rafktor.Log.{ CreateUser, TelegraftResponse, UserCreated }
+import com.telegraft.rafktor.Log.{ CreateUser, TelegraftRequest, TelegraftResponse, UserCreated }
 import com.telegraft.rafktor.RaftServer.{ AppendEntries, AppendEntriesResponse, ClientRequest }
 import com.telegraft.rafktor.RaftState.{ Candidate, Follower, Leader }
-import com.telegraft.rafktor.proto.{ AppendEntriesRequest, RequestVoteRequest, TelegraftRaftServiceClient }
-import com.telegraft.statemachine.proto.TelegraftStateMachineServiceClient
+import com.telegraft.rafktor.proto.{
+  AppendEntriesRequest,
+  ClientRequestPayload,
+  ClientRequestResponse,
+  LogEntryPayload,
+  LogEntryResponse,
+  RequestVoteRequest,
+  TelegraftRaftClientServiceClient,
+  TelegraftRaftServiceClient
+}
+import com.telegraft.statemachine.proto.{ CreateUserRequest, CreateUserResponse }
 import com.typesafe.config.{ Config, ConfigFactory }
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.BeforeAndAfterEach
@@ -44,7 +53,7 @@ class RaftServerSpec
 
   private val mockedStateMachineBehaviour = Behaviors.receiveMessage[StateMachine.Command] {
     case StateMachine.ClientRequest(payload: CreateUser, replyTo) =>
-      replyTo ! StatusReply.success(UserCreated(true, payload.userName, None)); Behaviors.same
+      replyTo ! StatusReply.success(UserCreated(ok = true, payload.userName, None)); Behaviors.same
     case _ => Behaviors.same
   }
   private val stateMachine = testKit.spawn(mockedStateMachineBehaviour, "StateMachineMock")
@@ -73,11 +82,12 @@ class RaftServerSpec
     "remain follower as long as it receives valid RPCs from candidates or leader" in {
 
       val initialState = eventSourcedTestKit.getState()
+      val logEntry1 = Log.LogEntry(mockPayload, 1.toLong, Some("clientId1", "requestId1"), None)
+      val logEntry2 = Log.LogEntry(mockPayload, 2.toLong, Some("clientId2", "requestId2"), None)
       eventSourcedTestKit.runCommand[StatusReply[AppendEntriesResponse]](
-        RaftServer
-          .AppendEntries(initialState.currentTerm + 1, "LeaderId", -1, -1, Log(Vector((mockPayload, 1))), -1, _))
+        RaftServer.AppendEntries(initialState.currentTerm + 1, "LeaderId", -1, -1, Log(Vector(logEntry1)), -1, _))
       eventSourcedTestKit.runCommand[StatusReply[AppendEntriesResponse]](
-        RaftServer.AppendEntries(initialState.currentTerm + 2, "LeaderId", 0, 0, Log(Vector((mockPayload, 2))), 1, _))
+        RaftServer.AppendEntries(initialState.currentTerm + 2, "LeaderId", 0, 0, Log(Vector(logEntry2)), 1, _))
       val result =
         eventSourcedTestKit.runCommand[StatusReply[AppendEntriesResponse]](
           RaftServer.AppendEntries(initialState.currentTerm + 1, "AnotherLeader", 0, 0, Log.empty, 0, _))
@@ -89,7 +99,7 @@ class RaftServerSpec
       eventSourcedTestKit.getState() shouldBe Follower(
         initialState.currentTerm + 2,
         None,
-        Log(Vector((mockPayload, 1), (mockPayload, 2))),
+        Log(Vector(logEntry1, logEntry2)),
         1,
         -1,
         Some("LeaderId"))
@@ -98,7 +108,7 @@ class RaftServerSpec
       eventSourcedTestKit.getState() shouldBe Candidate(
         initialState.currentTerm + 3,
         Some(raftServerId),
-        Log(Vector((mockPayload, 1), (mockPayload, 2))),
+        Log(Vector(logEntry1, logEntry2)),
         1,
         -1,
         1)
@@ -130,8 +140,8 @@ class RaftServerSpec
       (raftServerClientMock2.requestVote(_: RequestVoteRequest)).expects(*).once().onCall { req: RequestVoteRequest =>
         Future.successful(proto.RequestVoteResponse(req.term, granted = true))
       }
-      val server1 = new ServerMock("server1", raftServerClientMock1, mock[TelegraftStateMachineServiceClient])
-      val server2 = new ServerMock("server2", raftServerClientMock2, mock[TelegraftStateMachineServiceClient])
+      val server1 = new ServerMock("server1", raftServerClientMock1, mock[TelegraftRaftClientServiceClient])(system)
+      val server2 = new ServerMock("server2", raftServerClientMock2, mock[TelegraftRaftClientServiceClient])(system)
       configuration.servers = Set(server1, server2)
 
       manualTime.timePasses(400.millis)
@@ -142,7 +152,7 @@ class RaftServerSpec
       manualTime.timePasses(300.millis)
       eventSourcedTestKit.getState() shouldBe a[Candidate]
       manualTime.timePasses(300.millis)
-      eventSourcedTestKit.getState().currentTerm shouldBe oneOf(1, 0)
+      eventSourcedTestKit.getState().currentTerm shouldBe oneElementOf(List(1, 2))
     }
   }
   "Leader Append-Only property entails that a raft server" should {
@@ -150,27 +160,39 @@ class RaftServerSpec
       val raftServerClientMock1 = mock[TelegraftRaftServiceClient]
       (raftServerClientMock1.appendEntries(_: AppendEntriesRequest)).expects(*).once().onCall {
         _: AppendEntriesRequest =>
-          Future.successful(proto.AppendEntriesResponse(0, true))
+          Future.successful(proto.AppendEntriesResponse(success = true))
       }
       val raftServerClientMock2 = mock[TelegraftRaftServiceClient]
       (raftServerClientMock2.appendEntries(_: AppendEntriesRequest)).expects(*).once().onCall {
         _: AppendEntriesRequest =>
-          Future.successful(proto.AppendEntriesResponse(0, true))
+          Future.successful(proto.AppendEntriesResponse(success = true))
       }
-      val grpcClient = mock[TelegraftStateMachineServiceClient]
-      (grpcClient.createUser(_: com.telegraft.statemachine.proto.CreateUserRequest)).expects(*).onCall {
-        r: com.telegraft.statemachine.proto.CreateUserRequest =>
-          Future.successful(com.telegraft.statemachine.proto.CreateUserResponse(true, r.username, None))
-      }
-      val server1 = new ServerMock("server1", raftServerClientMock1, grpcClient)
-      val server2 = new ServerMock("server2", raftServerClientMock2, mock[TelegraftStateMachineServiceClient])
+      val grpcClient = mock[TelegraftRaftClientServiceClient]
+      (grpcClient
+        .clientRequest(_: ClientRequestPayload))
+        .expects(
+          ClientRequestPayload(
+            "clientId1",
+            "requestId1",
+            Some(LogEntryPayload(LogEntryPayload.Payload.CreateUser(CreateUserRequest("NewUser"))))))
+        .onCall { _: ClientRequestPayload =>
+          Future.successful(
+            ClientRequestResponse(
+              status = true,
+              Some(
+                LogEntryResponse(LogEntryResponse.Payload.CreateUser(CreateUserResponse(ok = true, "NewUser", None))))))
+        }
+      val server1 = new ServerMock("server1", raftServerClientMock1, grpcClient)(system)
+      val server2 = new ServerMock("server2", raftServerClientMock2, mock[TelegraftRaftClientServiceClient])(system)
       configuration.servers = Set(server1, server2)
       eventSourcedTestKit.initialize(
         Leader(0, None, Log.empty, -1, -1, Map("server1" -> 0, "server2" -> 0), Map("server1" -> -1, "server2" -> -1)))
 
+      val logEntry = Log.LogEntry(CreateUser("NewUser"), 0.toLong, Some(("clientId1", "requestId1")), None)
       eventSourcedTestKit.runCommand(
         ClientRequest(
-          CreateUser("NewUser"),
+          logEntry.payload.asInstanceOf[TelegraftRequest],
+          logEntry.maybeClientId,
           testKit.spawn(Behaviors.stopped[StatusReply[TelegraftResponse]], "StateMachineResponse")))
       eventSourcedTestKit.getState().log.lastLogIndex shouldBe 0
       manualTime.timePasses(10.millis)
@@ -180,34 +202,37 @@ class RaftServerSpec
           "server1",
           -1,
           0,
-          Log(Vector((CreateUser("NewUser"), 0))),
+          Log(Vector(logEntry)),
           0,
           testKit.spawn(Behaviors.stopped[StatusReply[AppendEntriesResponse]], "AppendEntriesResponse")))
 
-      eventSourcedTestKit
-        .getState() shouldBe Follower(1, None, Log(Vector((CreateUser("NewUser"), 0))), 0, -1, Some("server1"))
+      eventSourcedTestKit.getState() shouldBe Follower(1, None, Log(Vector(logEntry)), 0, -1, Some("server1"))
 
     }
     "apply entry if entry is replicated if server is leader" in {
       val raftServerClientMock1 = mock[TelegraftRaftServiceClient]
       (raftServerClientMock1.appendEntries(_: AppendEntriesRequest)).expects(*).once().onCall {
         _: AppendEntriesRequest =>
-          Future.successful(proto.AppendEntriesResponse(0, true))
+          Future.successful(proto.AppendEntriesResponse(success = true))
       }
       val raftServerClientMock2 = mock[TelegraftRaftServiceClient]
       (raftServerClientMock2.appendEntries(_: AppendEntriesRequest)).expects(*).once().onCall {
         _: AppendEntriesRequest =>
-          Future.successful(proto.AppendEntriesResponse(0, true))
+          Future.successful(proto.AppendEntriesResponse(success = true))
       }
 
-      val server1 = new ServerMock("server1", raftServerClientMock1, mock[TelegraftStateMachineServiceClient])
-      val server2 = new ServerMock("server2", raftServerClientMock2, mock[TelegraftStateMachineServiceClient])
+      val server1 = new ServerMock("server1", raftServerClientMock1, mock[TelegraftRaftClientServiceClient])(system)
+      val server2 = new ServerMock("server2", raftServerClientMock2, mock[TelegraftRaftClientServiceClient])(system)
       configuration.servers = Set(server1, server2)
       eventSourcedTestKit.initialize(
         Leader(0, None, Log.empty, -1, -1, Map("server1" -> 0, "server2" -> 0), Map("server1" -> -1, "server2" -> -1)))
 
+      val logEntry1 = Log.LogEntry(CreateUser("NewUser"), 1.toLong, Some("clientId1", "requestId1"), None)
       eventSourcedTestKit.runCommand(
-        ClientRequest(CreateUser("NewUser"), testKit.spawn(Behaviors.stopped[StatusReply[TelegraftResponse]])))
+        ClientRequest(
+          logEntry1.payload.asInstanceOf[TelegraftRequest],
+          logEntry1.maybeClientId,
+          testKit.spawn(Behaviors.stopped[StatusReply[TelegraftResponse]])))
       manualTime.timePasses(10.millis)
       manualTime.timePasses(10.millis)
       manualTime.timePasses(100.millis)
@@ -215,7 +240,7 @@ class RaftServerSpec
       eventSourcedTestKit.getState() shouldBe Leader(
         0,
         None,
-        Log(Vector((CreateUser("NewUser"), 0))),
+        Log(Vector(logEntry1)),
         0,
         0,
         Map("server1" -> 1, "server2" -> 1),
@@ -232,8 +257,8 @@ class RaftServerSpec
       (raftServerClientMock2.appendEntries(_: AppendEntriesRequest)).expects(*).repeated(3 to 6).onCall {
         _: AppendEntriesRequest => Future.failed(new RuntimeException("message"))
       }
-      val server1 = new ServerMock("server1", raftServerClientMock1, mock[TelegraftStateMachineServiceClient])
-      val server2 = new ServerMock("server2", raftServerClientMock2, mock[TelegraftStateMachineServiceClient])
+      val server1 = new ServerMock("server1", raftServerClientMock1, mock[TelegraftRaftClientServiceClient])(system)
+      val server2 = new ServerMock("server2", raftServerClientMock2, mock[TelegraftRaftClientServiceClient])(system)
       configuration.servers = Set(server1, server2)
 
       eventSourcedTestKit.initialize(

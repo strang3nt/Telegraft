@@ -9,7 +9,7 @@ object Configuration {
     val configuration = new Configuration
 
     val newConfig =
-      system.settings.config.getObject("raft").unwrapped().asScala.map { case (node, address) =>
+      system.settings.config.getObject("raft").unwrapped().asScala.map { case (_, address) =>
         val hostAndPort = address.asInstanceOf[java.util.Map[String, AnyRef]].asScala
         val host = hostAndPort("host").toString
         val port = hostAndPort("port").toString.toInt

@@ -13,18 +13,34 @@ message LogEntryPayload {
     statemachine.SendMessageRequest sendMessage = 2;
     statemachine.CreateChatRequest createChat = 3;
     statemachine.JoinChatRequest joinChat = 4;
-    statemachine.GetMessagesRequest getMessage = 5;
-
+    statemachine.GetMessagesRequest getMessages = 5;
   }
+}
+
+message LogEntryResponse {
+  oneof payload {
+    statemachine.CreateUserResponse createUser = 1;
+    statemachine.SendMessageResponse sendMessage = 2;
+    statemachine.CreateChatResponse createChat = 3;
+    statemachine.JoinChatResponse joinChat = 4;
+    statemachine.GetMessagesResponse getMessages = 5;
+  }
+}
+
+message ClientRequest {
+  string clientId = 1;
+  string requestId = 2;
 }
 
 // LogEntry contains a raft log entry.
 message LogEntry {
-  // Index holds the index of the log entry.
   // Term holds the election term of the log entry.
-  uint64 term = 2;
+  uint64 term = 1;
   // Type holds the type of the log entry.
-  LogEntryPayload type = 3;
+  LogEntryPayload type = 2;
+  optional ClientRequest clientRequest = 3;
+  optional LogEntryResponse response = 4;
+
 
 }
 
