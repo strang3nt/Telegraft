@@ -14,17 +14,22 @@ import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.model.HttpResponse
 
 object TelegraftRaftServer {
-  def start(interface: String, port: Int, system: ActorSystem[_], grpcService: proto.TelegraftRaftService): Unit = {
+  def start(
+      interface: String,
+      port: Int,
+      system: ActorSystem[_],
+      raftService: proto.TelegraftRaftService,
+      raftClientService: proto.TelegraftRaftClientService): Unit = {
 
     implicit val sys: ActorSystem[_] = system
     implicit val ec: ExecutionContext = system.executionContext
 
-    // TODO: add service for rest client
     val service: HttpRequest => Future[HttpResponse] =
       ServiceHandler.concatOrNotFound(
-        proto.TelegraftRaftServiceHandler.partial(grpcService),
+        proto.TelegraftRaftServiceHandler.partial(raftService),
+        proto.TelegraftRaftClientServiceHandler.partial(raftClientService),
         // ServerReflection enabled to support grpcurl without import-path and proto parameters
-        ServerReflection.partial(List(proto.TelegraftRaftService)))
+        ServerReflection.partial(List(proto.TelegraftRaftService, proto.TelegraftRaftClientService)))
 
     val bound =
       Http().newServerAt(interface, port).bind(service).map(_.addToCoordinatedShutdown(3.seconds))

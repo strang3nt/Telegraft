@@ -6,9 +6,8 @@ Telegraft uses Scala and relies heavily on Akka technologies.
 
 ## Architecture
 
-Since it is a distributed application there are many Telegraft nodes, each one is composed with 3 services:
-
- - `telegraft-rest-service` which acts as a facade to the other services, simply receives a http request and routes it to a module
+Since it is a distributed application there are many Telegraft nodes, each one is composed with 2 services:
+ 
  - `telegraft-raft-service` which is the Raft implementation
  - `telegraft-statemachine-service` which is where the actual business logic happens, the state machine receives read 
     and write requests from (respectively) the rest and raft services and queries a database in order to answer accordingly.

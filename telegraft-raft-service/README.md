@@ -52,6 +52,8 @@ Clients can query each one of the replicas, and they will get a response:
 
 ### Timeouts
 
+### Client responses
+
 ### Log
 
 There is a Log class, which wraps a collection of tuples of:
