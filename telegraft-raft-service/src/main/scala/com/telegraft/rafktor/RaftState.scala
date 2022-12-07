@@ -1,7 +1,9 @@
 package com.telegraft.rafktor
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.telegraft.rafktor.Log.TelegraftResponse.convertToGrpc
 import com.telegraft.rafktor.RaftServer.{
+  AppendEntries,
   AppendEntriesResponseEvent,
   AppliedToStateMachine,
   ClientRequestEvent,
@@ -12,9 +14,12 @@ import com.telegraft.rafktor.RaftServer.{
   VoteExpressed
 }
 import com.telegraft.rafktor.proto.{ AppendEntriesRequest, LogEntry, LogEntryPayload, LogEntryResponse }
+import org.slf4j.LoggerFactory
 
 sealed trait RaftState extends CborSerializable {
 
+  @JsonIgnore
+  private val logger = LoggerFactory.getLogger("com.telegraft.rafktor.RaftState")
   import com.telegraft.rafktor.RaftState.{ Candidate, Follower, Leader }
 
   // Persistent state
@@ -26,14 +31,18 @@ sealed trait RaftState extends CborSerializable {
   val commitIndex: Long
   val lastApplied: Long
 
-  protected def convertToFollower(newTerm: Long, newLeader: Option[String] = None): RaftState =
-    Follower(
+  protected def convertToFollower(newTerm: Long, newLeader: Option[String] = None): RaftState = {
+
+    val newState = Follower(
       currentTerm = newTerm,
       votedFor = None,
       log = this.log,
       commitIndex = this.commitIndex,
       lastApplied = this.lastApplied,
       leaderId = newLeader)
+    logger.info("Raft server became a follower with state: " + newState)
+    newState
+  }
 
   protected def updateCommitIndex(leaderCommit: Long, newLog: Log): Long = {
     if (leaderCommit > this.commitIndex)
@@ -41,24 +50,31 @@ sealed trait RaftState extends CborSerializable {
     else this.commitIndex
   }
 
-  protected def becomeCandidate(serverId: String): Candidate =
-    Candidate(
+  protected def becomeCandidate(serverId: String): Candidate = {
+    val newState = Candidate(
       currentTerm = this.currentTerm + 1,
       votedFor = Some(serverId),
       log = this.log,
       commitIndex = this.commitIndex,
       lastApplied = this.lastApplied,
       countVotes = 1)
+    logger.info("Raft server became a candidate with state: " + newState)
+    newState
+  }
 
-  protected def becomeLeader(config: Configuration): Leader =
-    Leader(
-      currentTerm = this.currentTerm,
-      votedFor = None,
-      log = this.log,
-      commitIndex = this.commitIndex,
-      lastApplied = this.lastApplied,
-      nextIndex = Map.from[String, Long](config.getConfiguration.map(server => (server.id, log.length))),
-      matchIndex = Map.from[String, Long](config.getConfiguration.map(server => (server.id, -1))))
+  protected def becomeLeader(config: Configuration): Leader = {
+    val newState =
+      Leader(
+        currentTerm = this.currentTerm,
+        votedFor = None,
+        log = this.log,
+        commitIndex = this.commitIndex,
+        lastApplied = this.lastApplied,
+        nextIndex = Map.from[String, Long](config.getConfiguration.map(server => (server.id, log.length))),
+        matchIndex = Map.from[String, Long](config.getConfiguration.map(server => (server.id, -1))))
+    logger.info("Raft server became a leader with state: " + newState)
+    newState
+  }
 
   def applyEvent(event: Event, config: Configuration): RaftState
 
@@ -78,7 +94,8 @@ object RaftState {
 
     override def applyEvent(event: Event, config: Configuration): RaftState = {
       event match {
-        case AppliedToStateMachine(_, logIndex, _, telegraftResponse) =>
+
+        case AppliedToStateMachine(_, logIndex, telegraftResponse) =>
           this.copy(
             log = Log(log.logEntries.zipWithIndex.map {
               case (Log.LogEntry(load, l, maybeTuple, None), index) if logIndex == index =>
@@ -86,15 +103,17 @@ object RaftState {
               case other => other._1
             }),
             lastApplied = if (lastApplied > logIndex) lastApplied else logIndex)
-        case EntriesAppended(term, leaderId, prevLogIndex, leaderCommit, entries) =>
+
+        case EntriesAppended(term, AppendEntries(_, leaderId, prevLogIndex, prevLogTerm, entries, leaderCommit, _))
+            if term >= currentTerm && !Log.entryIsConflicting(this.log, prevLogIndex.toInt, prevLogTerm) =>
           val newLog =
             this.log.removeConflictingEntries(entries, prevLogIndex.toInt).appendEntries(entries, prevLogIndex.toInt)
-
           this.copy(
             log = newLog,
             commitIndex = this.updateCommitIndex(leaderCommit, newLog),
-            currentTerm = if (term > currentTerm) term else currentTerm,
-            leaderId = if (term > currentTerm) Some(leaderId) else this.leaderId)
+            currentTerm = term,
+            leaderId = Some(leaderId))
+
         case VoteExpressed(term, candidateId, voteResult) =>
           if (voteResult)
             this.copy(votedFor = Some(candidateId), currentTerm = if (term > currentTerm) term else currentTerm)
@@ -158,7 +177,7 @@ object RaftState {
     }
     override def applyEvent(event: Event, config: Configuration): RaftState = {
       event match {
-        case AppliedToStateMachine(_, logIndex, _, telegraftResponse) =>
+        case AppliedToStateMachine(_, logIndex, telegraftResponse) =>
           this.copy(
             log = Log(log.logEntries.zipWithIndex.map {
               case (Log.LogEntry(load, l, maybeTuple, None), index) if logIndex == index =>
@@ -166,11 +185,10 @@ object RaftState {
               case other => other._1
             }),
             lastApplied = if (lastApplied > logIndex) lastApplied else logIndex)
-        case e @ EntriesAppended(term, leaderId, _, _, _) =>
+        case e @ EntriesAppended(term, AppendEntries(_, leaderId, _, _, _, _, _)) =>
           if (this.currentTerm <= term) {
             this.convertToFollower(term, Some(leaderId)).applyEvent(e, config)
           } else this
-        // TODO: check AppendEntriesResponseEvent case for correctness
         case AppendEntriesResponseEvent(_, serverId, highestLogEntry, success) if success =>
           val updatedMatchIndex =
             if (highestLogEntry > this.matchIndex(serverId))
@@ -211,7 +229,7 @@ object RaftState {
           if (countVotes + 1 >= config.majority) {
             this.becomeLeader(config)
           } else { this.copy(countVotes = countVotes + 1) }
-        case e @ EntriesAppended(term, leaderId, _, _, _) =>
+        case e @ EntriesAppended(term, AppendEntries(_, leaderId, _, _, _, _, _)) =>
           if (this.currentTerm <= term) {
             this.convertToFollower(term, Some(leaderId)).applyEvent(e, config)
           } else this

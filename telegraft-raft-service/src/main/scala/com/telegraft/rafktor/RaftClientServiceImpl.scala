@@ -21,7 +21,7 @@ class RaftClientServiceImpl(raftNode: ActorRef[RaftServer.Command], stateMachine
   private implicit val ec: ExecutionContext = system.executionContext
   private implicit val scheduler: Scheduler = system.scheduler
   implicit private val timeout: Timeout =
-    Timeout.create(system.settings.config.getDuration("telegraft-statemachine-service.ask-timeout"))
+    Timeout.create(system.settings.config.getDuration("telegraft-raft-service.ask-timeout"))
 
   override def clientQuery(in: ClientQueryPayload): Future[ClientQueryResponse] = {
     stateMachine

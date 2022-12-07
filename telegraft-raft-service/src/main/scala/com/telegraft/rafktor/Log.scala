@@ -56,9 +56,9 @@ final case class Log(logEntries: Vector[LogEntry]) extends CborSerializable {
 
   def isMoreUpToDate(otherLastLogIndex: Int, otherLastLogTerm: Long): Boolean = {
     // if this last log term is higher then other log, this log is more up to date
-    (this.logEntries.last.term > otherLastLogTerm) ||
+    (this.lastLogTerm > otherLastLogTerm) ||
     // else the bigger log is more up to date
-    (this.logEntries.last.term == otherLastLogTerm && this.logEntries.length - 1 > otherLastLogIndex)
+    (this.lastLogTerm == otherLastLogTerm && this.length - 1 > otherLastLogIndex)
   }
 
 }

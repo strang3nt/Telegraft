@@ -27,7 +27,7 @@ class RaftServiceImpl(raftNode: ActorRef[RaftServer.Command])(implicit system: A
   private implicit val ec: ExecutionContext = system.executionContext
   private implicit val scheduler: Scheduler = system.scheduler
   private implicit val timeout: Timeout =
-    Timeout.create(system.settings.config.getDuration("telegraft-statemachine-service.ask-timeout"))
+    Timeout.create(system.settings.config.getDuration("telegraft-raft-service.ask-timeout"))
 
   /**
    * AppendEntries performs a single append entries request / response.

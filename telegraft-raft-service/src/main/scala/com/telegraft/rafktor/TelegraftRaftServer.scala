@@ -24,7 +24,6 @@ object TelegraftRaftServer {
     implicit val sys: ActorSystem[_] = system
     implicit val ec: ExecutionContext = system.executionContext
 
-    // TODO: add service for rest client
     val service: HttpRequest => Future[HttpResponse] =
       ServiceHandler.concatOrNotFound(
         proto.TelegraftRaftServiceHandler.partial(raftService),
