@@ -1,18 +1,11 @@
 package com.telegraft.rafktor
 
-import akka.actor.typed.{ ActorRef, ActorSystem, Scheduler }
+import akka.actor.typed.{ActorRef, ActorSystem, Scheduler}
 import akka.actor.typed.scaladsl.AskPattern.Askable
 import akka.util.Timeout
 import com.telegraft.rafktor.Log.TelegraftResponse
-import com.telegraft.rafktor.proto.{
-  AppendEntriesRequest,
-  AppendEntriesResponse,
-  LogEntry,
-  RequestVoteRequest,
-  RequestVoteResponse,
-  TelegraftRaftService
-}
-import scala.concurrent.{ ExecutionContext, Future }
+import com.telegraft.rafktor.proto.{AppendEntriesRequest, AppendEntriesResponse, LogEntry, RequestVoteRequest, RequestVoteResponse, TelegraftRaftService}
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * @param raftNode The raft node the implementation serves.
@@ -55,12 +48,14 @@ class RaftServiceImpl(raftNode: ActorRef[RaftServer.Command])(implicit system: A
       CreateUserRequest,
       GetMessagesRequest,
       JoinChatRequest,
-      SendMessageRequest
+      SendMessageRequest,
+      GetChatUsersRequest
     }
 
     import com.telegraft.rafktor.proto.LogEntryPayload.Payload.{
       CreateChat,
       CreateUser,
+      GetChatUsers,
       Empty,
       GetMessages,
       JoinChat,
@@ -78,6 +73,8 @@ class RaftServiceImpl(raftNode: ActorRef[RaftServer.Command])(implicit system: A
         Some(Log.GetMessages(userId, messagesAfter.get.asJavaInstant))
       case SendMessage(SendMessageRequest(userId, chatId, content, timestamp, _)) =>
         Some(Log.SendMessage(userId, chatId, content, timestamp.get.asJavaInstant))
+      case GetChatUsers(GetChatUsersRequest(chatId, _)) =>
+        Some(Log.GetChatUsers(chatId))
       case Empty => None
     }
   }

@@ -1,8 +1,6 @@
 package com.telegraft.statemachine.database
 
 import akka.Done
-import slick.basic.DatabaseConfig
-import slick.jdbc.PostgresProfile
 import slick.jdbc.PostgresProfile.api._
 
 import java.time.Instant
@@ -25,6 +23,8 @@ trait DatabaseRepository {
   def getMessagesAfterTimestamp(
       userId: String,
       timestamp: Instant): Future[Seq[Message]]
+
+  def getChatUsers(chatId: String): Future[Seq[User]]
 }
 
 object DatabaseRepositoryImpl {
@@ -53,6 +53,18 @@ class DatabaseRepositoryImpl(
     extends DatabaseRepository {
 
   import ExecutionContext.Implicits.global
+
+  override def getChatUsers(chatId: String): Future[Seq[User]] =
+    Connection.dbConfig.db.run {
+      userChatRepo.userChatTable
+        .filter(_.chatId === chatId)
+        .join(chatRepo.chatTable)
+        .on(_.chatId === _.id)
+        .join(userRepo.userTable)
+        .on(_._1.userId === _.id)
+        .map(_._2)
+        .result
+    }
 
   override def createTables: Future[Unit] = Connection.dbConfig.db.run {
     DBIO

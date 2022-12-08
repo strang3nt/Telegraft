@@ -1,11 +1,10 @@
 package com.telegraft.statemachine
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import akka.actor.typed.ActorSystem
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.util.Timeout
-import com.telegraft.statemachine.persistence.{ PersistentChat, PersistentUser }
-import org.slf4j.LoggerFactory
+import com.telegraft.statemachine.persistence.{PersistentChat, PersistentUser}
 import com.telegraft.statemachine.database.DatabaseRepository
 
 import java.time.Instant
@@ -15,7 +14,6 @@ class TelegraftStateMachineImpl(
     repository: DatabaseRepository)
     extends proto.TelegraftStateMachineService {
 
-  private val logger = LoggerFactory.getLogger(getClass)
   private val sharding = ClusterSharding(system)
   private implicit val ec: ExecutionContext = system.executionContext
 
@@ -83,6 +81,12 @@ class TelegraftStateMachineImpl(
       .recover(err => proto.JoinChatResponse(ok = false, Some(err.getMessage)))
   }
 
+  def getChatUsers(in: proto.GetChatUsersRequest): Future[proto.GetChatUsersResponse] = {
+    repository.getChatUsers(in.chatId).map(users =>
+      proto.GetChatUsersResponse(ok = true, users = users.map(x => proto.User(x.id, x.userName)), None)
+    ) .recover(err => proto.GetChatUsersResponse(ok = false, users = Seq.empty, Some(err.getMessage)))
+  }
+
   def getMessages(
       in: proto.GetMessagesRequest): Future[proto.GetMessagesResponse] = {
 
@@ -103,6 +107,7 @@ class TelegraftStateMachineImpl(
                 .of(x.timestamp.getEpochSecond, x.timestamp.getNano))))
         proto.GetMessagesResponse(ok = true, protoMessages)
       })
+      .recover(err => proto.GetMessagesResponse(ok = false, messages = Seq.empty, Some(err.getMessage)))
   }
 
 }

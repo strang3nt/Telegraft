@@ -14,7 +14,23 @@ service TelegraftStateMachineService {
   rpc CreateChat (CreateChatRequest) returns (CreateChatResponse) {}
   rpc JoinChat (JoinChatRequest) returns (JoinChatResponse) {}
   rpc GetMessages (GetMessagesRequest) returns (GetMessagesResponse) {}
+  rpc GetChatUsers (GetChatUsersRequest) returns (GetChatUsersResponse) {}
 
+}
+
+message User {
+  string userId = 1;
+  string username = 2;
+}
+
+message GetChatUsersResponse {
+  bool ok = 1;
+  repeated User users = 2;
+  optional string errorMessage = 3;
+}
+
+message GetChatUsersRequest {
+  string chatId = 1;
 }
 
 message CreateUserRequest {

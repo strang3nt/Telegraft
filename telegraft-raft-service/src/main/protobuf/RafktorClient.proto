@@ -29,6 +29,7 @@ message ClientQueryPayload {
 
   oneof payload {
     statemachine.GetMessagesRequest getMessages = 3;
+    statemachine.GetChatUsersRequest getChatUsers = 4;
   }
 }
 
@@ -38,6 +39,7 @@ message ClientQueryResponse {
 
   oneof payload {
     statemachine.GetMessagesResponse getMessages = 2;
+    statemachine.GetChatUsersResponse getChatUsers = 3;
   }
 }
 

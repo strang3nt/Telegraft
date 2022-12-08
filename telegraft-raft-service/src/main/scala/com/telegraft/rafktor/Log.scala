@@ -1,25 +1,8 @@
 package com.telegraft.rafktor
-import com.fasterxml.jackson.annotation.{ JsonSubTypes, JsonTypeInfo }
-import com.telegraft.rafktor.Log.{ LogEntry, TelegraftResponse }
-import com.telegraft.rafktor.proto.{
-  ClientQueryPayload,
-  ClientQueryResponse,
-  LogEntryResponse,
-  LogEntryPayload => ProtoEntryPayload
-}
-import com.telegraft.statemachine.proto.{
-  CreateChatRequest,
-  CreateChatResponse,
-  CreateUserRequest,
-  CreateUserResponse,
-  GetMessagesRequest,
-  GetMessagesResponse,
-  JoinChatRequest,
-  JoinChatResponse,
-  SendMessageRequest,
-  SendMessageResponse,
-  Message => ProtoMessage
-}
+import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
+import com.telegraft.rafktor.Log.{LogEntry, TelegraftResponse}
+import com.telegraft.rafktor.proto.{ClientQueryPayload, ClientQueryResponse, LogEntryResponse, LogEntryPayload => ProtoEntryPayload}
+import com.telegraft.statemachine.proto.{CreateChatRequest, CreateChatResponse, CreateUserRequest, CreateUserResponse, GetChatUsersRequest, GetChatUsersResponse, GetMessagesRequest, GetMessagesResponse, JoinChatRequest, JoinChatResponse, SendMessageRequest, SendMessageResponse, User, Message => ProtoMessage}
 
 /**
  * @param logEntries a log entry is a tuple comprised of a payload, term, an optional tuple with clientId and requestId
@@ -109,6 +92,10 @@ object Log {
         case GetMessages(userId, timestamp) =>
           ProtoEntryPayload.Payload.GetMessages(
             GetMessagesRequest(userId, Some(com.google.protobuf.timestamp.Timestamp(timestamp))))
+        case GetChatUsers(chatId) =>
+          ProtoEntryPayload.Payload.GetChatUsers(
+            GetChatUsersRequest(chatId)
+          )
       }
     }
 
@@ -120,10 +107,10 @@ object Log {
           Some(SendMessage(value.userId, value.chatId, value.content, value.getTimestamp.asJavaInstant))
         case ProtoEntryPayload.Payload.CreateChat(value) =>
           Some(CreateChat(value.userId, value.chatName, value.chatDescription))
-        case ProtoEntryPayload.Payload.JoinChat(value) =>
-          Some(JoinChat(value.userId, value.chatId))
+        case ProtoEntryPayload.Payload.JoinChat(value) => Some(JoinChat(value.userId, value.chatId))
         case ProtoEntryPayload.Payload.GetMessages(value) =>
           Some(GetMessages(value.userId, value.getMessagesAfter.asJavaInstant))
+        case ProtoEntryPayload.Payload.GetChatUsers(value) => Some(GetChatUsers(value.chatId))
       }
     }
     def convertFromQueryGrpc(request: ClientQueryPayload.Payload): Option[TelegraftRequest] = {
@@ -131,8 +118,15 @@ object Log {
         case ClientQueryPayload.Payload.Empty => None
         case ClientQueryPayload.Payload.GetMessages(value) =>
           Some(GetMessages(value.userId, value.getMessagesAfter.asJavaInstant))
+        case ClientQueryPayload.Payload.GetChatUsers(value) =>
+          Some(GetChatUsers(value.chatId))
       }
     }
+  }
+
+  final case class GetChatUsers(chatId: String) extends TelegraftRequest {
+    override def convertToGrpc(): ProtoEntryPayload.Payload.GetChatUsers =
+      ProtoEntryPayload.Payload.GetChatUsers(GetChatUsersRequest(chatId))
   }
 
   final case class CreateUser(userName: String) extends TelegraftRequest {
@@ -200,6 +194,8 @@ object Log {
         case LogEntryResponse.Payload.JoinChat(value) => Some(ChatJoined(value.ok, value.errorMessage))
         case LogEntryResponse.Payload.GetMessages(value) =>
           Some(MessagesRetrieved(value.ok, value.messages.map(Message.convertFromGrpc).toSet, value.errorMessage))
+        case LogEntryResponse.Payload.GetChatUsers(value) =>
+          Some(ChatUsersRetrieved(value.ok, value.users.map(u => (u.userId, u.username)).toSet, value.errorMessage))
       }
     }
     def convertToGrpc(response: TelegraftResponse): LogEntryResponse.Payload = {
@@ -215,6 +211,8 @@ object Log {
         case ChatJoined(ok, errMsg) => LogEntryResponse.Payload.JoinChat(JoinChatResponse(ok, errMsg))
         case MessagesRetrieved(ok, messages, errMsg) =>
           LogEntryResponse.Payload.GetMessages(GetMessagesResponse(ok, messages.map(_.convertToGrpc()).toSeq, errMsg))
+        case ChatUsersRetrieved(ok, users, errMsg) =>
+          LogEntryResponse.Payload.GetChatUsers(GetChatUsersResponse(ok, users.map(x => User(x._1, x._2)).toSeq, errMsg))
       }
     }
 
@@ -229,6 +227,11 @@ object Log {
     }
   }
 
+  final case class ChatUsersRetrieved(ok: Boolean, users: Set[(String, String)], errMsg: Option[String]) extends TelegraftResponse
+  object ChatUsersRetrieved extends ConvertFromGrpc[GetChatUsersResponse, ChatUsersRetrieved] {
+    override implicit def convertFromGrpc(response: GetChatUsersResponse): ChatUsersRetrieved =
+      ChatUsersRetrieved(response.ok, response.users.map(x => (x.userId, x.username)).toSet, response.errorMessage)
+  }
   final case class UserCreated(ok: Boolean, userId: String, errMsg: Option[String]) extends TelegraftResponse
 
   object UserCreated extends ConvertFromGrpc[CreateUserResponse, UserCreated] {

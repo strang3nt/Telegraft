@@ -12,8 +12,6 @@ import slick.dbio.DBIO
 class UserProjectionHandler(repository: DatabaseRepository)
     extends SlickHandler[EventEnvelope[PersistentUser.Event]] {
 
-  private val logger = LoggerFactory.getLogger(getClass)
-
   override def process(
       envelope: EventEnvelope[PersistentUser.Event]): DBIO[Done] = {
     envelope.event match {

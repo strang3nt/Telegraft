@@ -14,6 +14,7 @@ message LogEntryPayload {
     statemachine.CreateChatRequest createChat = 3;
     statemachine.JoinChatRequest joinChat = 4;
     statemachine.GetMessagesRequest getMessages = 5;
+    statemachine.GetChatUsersRequest getChatUsers = 6;
   }
 }
 
@@ -24,6 +25,7 @@ message LogEntryResponse {
     statemachine.CreateChatResponse createChat = 3;
     statemachine.JoinChatResponse joinChat = 4;
     statemachine.GetMessagesResponse getMessages = 5;
+    statemachine.GetChatUsersResponse getChatUsers = 6;
   }
 }
 
@@ -91,14 +93,6 @@ message RequestVoteResponse {
   // Granted if the vote was granted.
   bool granted = 2;
 
-}
-
-// AppendEntriesPipelineResponse is the wrapper of an AppendEntriesResponse in a pipeline.
-message AppendEntriesPipelineResponse {
-  // Error is any potential error.
-  string error = 1;
-  // Response is the response object if necessary
-  AppendEntriesResponse response = 2;
 }
 
 // RaftService implements the raft pipelining receiver.

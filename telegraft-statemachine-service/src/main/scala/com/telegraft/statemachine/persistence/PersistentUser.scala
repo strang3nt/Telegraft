@@ -57,7 +57,7 @@ object PersistentUser {
         persistenceId = PersistenceId(EntityKey.name, persistentUserId),
         emptyState = User(persistentUserId, ""),
         commandHandler =
-          (state, command) => handleCommand(persistentUserId, state, command),
+          (_, command) => handleCommand(persistentUserId, command),
         eventHandler = (state, event) => handleEvent(state, event))
       .withTagger(_ => Set(projectionTag))
       .withRetention(RetentionCriteria
@@ -68,7 +68,6 @@ object PersistentUser {
 
   private def handleCommand(
       persistentUserId: String,
-      state: User,
       command: Command): ReplyEffect[Event, User] =
     command match {
       case CreateUser(username, replyTo) =>

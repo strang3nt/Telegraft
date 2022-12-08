@@ -4,10 +4,16 @@ lazy val LogBackVersion = "1.4.5"
 lazy val ScalaTestVersion = "3.2.14"
 lazy val PostgresqlVersion = "42.5.1"
 lazy val ScalaMockVersion = "5.2.0"
-lazy val ScalaParallelCollections = "1.0.4"
+lazy val ScalaParallelCollectionsVersion = "1.0.4"
 
 name := "telegraft-raft-service"
-enablePlugins(AshScriptPlugin, AkkaGrpcPlugin, JavaAppPackaging, DockerPlugin, UniversalPlugin)
+
+enablePlugins(
+  AshScriptPlugin,
+  AkkaGrpcPlugin,
+  JavaAppPackaging,
+  DockerPlugin,
+  UniversalPlugin)
 
 organization := "com.telegraft"
 scalaVersion := "2.13.10"
@@ -37,7 +43,7 @@ dockerRepository := sys.props.get("docker.registry")
 ThisBuild / dynverSeparator := "-"
 
 libraryDependencies ++= Seq(
-  "org.scala-lang.modules" %% "scala-parallel-collections" % ScalaParallelCollections,
+  "org.scala-lang.modules" %% "scala-parallel-collections" % ScalaParallelCollectionsVersion,
   // Akka Management powers Health Checks and Akka Cluster Bootstrapping
   "com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion,
   "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
@@ -49,9 +55,9 @@ libraryDependencies ++= Seq(
   "org.scalamock" %% "scalamock" % ScalaMockVersion % Test,
   "com.typesafe.akka" %% "akka-persistence-testkit" % AkkaVersion % Test,
   "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test,
-  // 2. Using gRPC and/or protobuf
+  // Using gRPC and/or protobuf
   "com.typesafe.akka" %% "akka-http2-support" % AkkaHttpVersion,
-  // 3. Using Akka Persistence
+  // Using Akka Persistence
   "com.typesafe.akka" %% "akka-persistence-typed" % AkkaVersion,
   "com.typesafe.akka" %% "akka-serialization-jackson" % AkkaVersion,
   "org.postgresql" % "postgresql" % PostgresqlVersion)

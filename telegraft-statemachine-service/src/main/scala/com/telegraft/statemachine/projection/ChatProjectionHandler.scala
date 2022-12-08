@@ -10,13 +10,10 @@ import com.telegraft.statemachine.persistence.PersistentChat.{
   ChatJoined,
   MessageAdded
 }
-import org.slf4j.LoggerFactory
 import slick.dbio.DBIO
 
 class ChatProjectionHandler(repository: DatabaseRepository)
     extends SlickHandler[EventEnvelope[PersistentChat.Event]] {
-
-  private val logger = LoggerFactory.getLogger(getClass)
 
   override def process(
       envelope: EventEnvelope[PersistentChat.Event]): DBIO[Done] = {
