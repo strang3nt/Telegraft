@@ -230,12 +230,12 @@ class RaftServerSpec
     }
     "apply entry if entry is replicated if server is leader" in {
       val raftServerClientMock1 = mock[TelegraftRaftServiceClient]
-      (raftServerClientMock1.appendEntries(_: AppendEntriesRequest)).expects(*).once().onCall {
+      (raftServerClientMock1.appendEntries(_: AppendEntriesRequest)).expects(*).twice().onCall {
         _: AppendEntriesRequest =>
           Future.successful(proto.AppendEntriesResponse(success = true))
       }
       val raftServerClientMock2 = mock[TelegraftRaftServiceClient]
-      (raftServerClientMock2.appendEntries(_: AppendEntriesRequest)).expects(*).once().onCall {
+      (raftServerClientMock2.appendEntries(_: AppendEntriesRequest)).expects(*).twice().onCall {
         _: AppendEntriesRequest =>
           Future.successful(proto.AppendEntriesResponse(success = true))
       }

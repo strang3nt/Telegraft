@@ -121,8 +121,6 @@ object RaftState {
             this.copy(
               currentTerm = if (term > currentTerm) term else currentTerm,
               votedFor = if (term > currentTerm) None else this.votedFor)
-        case ClientRequestEvent(term, payload, clientRequest) =>
-          this.copy(log = this.log.appendEntry(term, payload, clientRequest))
         case ElectionTimeoutElapsed(_, serverId) =>
           becomeCandidate(serverId)
         case other =>
