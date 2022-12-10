@@ -1,17 +1,13 @@
 package com.telegraft.rafktor
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.concurrent.duration._
-import scala.util.Failure
-import scala.util.Success
-
 import akka.actor.typed.ActorSystem
-import akka.grpc.scaladsl.ServerReflection
-import akka.grpc.scaladsl.ServiceHandler
+import akka.grpc.scaladsl.{ServerReflection, ServiceHandler}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 object TelegraftRaftServer {
   def start(

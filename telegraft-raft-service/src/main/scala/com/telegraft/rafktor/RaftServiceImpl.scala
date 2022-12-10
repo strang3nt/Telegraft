@@ -1,11 +1,11 @@
 package com.telegraft.rafktor
 
-import akka.actor.typed.{ActorRef, ActorSystem, Scheduler}
 import akka.actor.typed.scaladsl.AskPattern.Askable
+import akka.actor.typed.{ ActorRef, ActorSystem, Scheduler }
 import akka.util.Timeout
-import com.telegraft.rafktor.Log.TelegraftResponse
-import com.telegraft.rafktor.proto.{AppendEntriesRequest, AppendEntriesResponse, LogEntry, RequestVoteRequest, RequestVoteResponse, TelegraftRaftService}
-import scala.concurrent.{ExecutionContext, Future}
+import com.telegraft.rafktor.proto._
+
+import scala.concurrent.{ ExecutionContext, Future }
 
 /**
  * @param raftNode The raft node the implementation serves.
@@ -25,7 +25,7 @@ class RaftServiceImpl(raftNode: ActorRef[RaftServer.Command])(implicit system: A
   /**
    * AppendEntries performs a single append entries request / response.
    */
-  override def appendEntries(in: AppendEntriesRequest): Future[AppendEntriesResponse] = {
+  override def appendEntries(in: AppendEntriesRequest): Future[AppendEntriesResponse] =
     raftNode
       .askWithStatus(
         RaftServer.AppendEntries(
@@ -39,28 +39,11 @@ class RaftServiceImpl(raftNode: ActorRef[RaftServer.Command])(implicit system: A
       .map { r =>
         proto.AppendEntriesResponse(r.term, r.success)
       }
-  }
 
   private def logEntryPayloadTranslator(payload: proto.LogEntryPayload): Option[Log.LogEntryPayLoad] = {
 
-    import com.telegraft.statemachine.proto.{
-      CreateChatRequest,
-      CreateUserRequest,
-      GetMessagesRequest,
-      JoinChatRequest,
-      SendMessageRequest,
-      GetChatUsersRequest
-    }
-
-    import com.telegraft.rafktor.proto.LogEntryPayload.Payload.{
-      CreateChat,
-      CreateUser,
-      GetChatUsers,
-      Empty,
-      GetMessages,
-      JoinChat,
-      SendMessage
-    }
+    import com.telegraft.rafktor.proto.LogEntryPayload.Payload._
+    import com.telegraft.statemachine.proto._
 
     payload.payload match {
       case CreateChat(CreateChatRequest(userId, chatName, chatDescription, _)) =>
@@ -82,22 +65,18 @@ class RaftServiceImpl(raftNode: ActorRef[RaftServer.Command])(implicit system: A
   private def fromLogEntriesToLog(logEntries: Seq[LogEntry]): Log =
     Log(
       logEntries
-        .map(l => (logEntryPayloadTranslator(l.getType), l.term, l.clientRequest, l.response))
-        .collect { case (Some(payload), term, Some(clientRequest), Some(response)) =>
-          Log.LogEntry(
-            payload,
-            term,
-            Some((clientRequest.clientId, clientRequest.requestId)),
-            TelegraftResponse.convertFromGrpc(response.payload))
+        .map(l => (logEntryPayloadTranslator(l.getType), l.term, l.clientRequest))
+        .collect { case (Some(payload), term, Some(clientRequest)) =>
+          Log.LogEntry(payload, term, Some((clientRequest.clientId, clientRequest.requestId)), None)
         }
         .toVector)
 
   /**
    * RequestVote is the command used by a candidate to ask a Raft peer for a vote in an election.
    */
-  override def requestVote(in: RequestVoteRequest): Future[RequestVoteResponse] = {
+  override def requestVote(in: RequestVoteRequest): Future[RequestVoteResponse] =
     raftNode
       .askWithStatus(RaftServer.RequestVote(in.term, in.candidateId, in.lastLogIndex, in.lastLogTerm, _))
       .map(r => proto.RequestVoteResponse(r.term, r.voteGranted))
-  }
+
 }

@@ -1,7 +1,6 @@
 package com.telegraft.rafktor
 
-import akka.actor.typed.scaladsl.TimerScheduler
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.pattern.StatusReply
 import akka.persistence.typed.PersistenceId
@@ -13,13 +12,13 @@ import com.telegraft.rafktor.Log.{LogEntryPayLoad, TelegraftRequest, TelegraftRe
 import com.telegraft.rafktor.proto.{ClientRequestPayload, TelegraftRaftClientServiceClient}
 import org.slf4j.LoggerFactory
 
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.util.{Failure, Success}
-import scala.collection.parallel.CollectionConverters._
 
 object RaftServer {
 
-  import RaftState.{ Candidate, Follower, Leader }
+  import RaftState.{Candidate, Follower, Leader}
 
   @JsonIgnore
   private val logger = LoggerFactory.getLogger("com.telegraft.rafktor.RaftServer")
@@ -27,8 +26,7 @@ object RaftServer {
   private def randomTermTimeout: FiniteDuration =
     scala.util.Random.between(150, 301).milliseconds
 
-  private def randomHeartBeatTimeout: FiniteDuration = 100.millis
-
+  private def heartBeatTimeout: FiniteDuration = 100.millis
 
   sealed trait Command extends CborSerializable
 
@@ -109,29 +107,21 @@ object RaftServer {
       rpc: AppendEntries,
       timer: TimerScheduler[Command]): ReplyEffect[Event, RaftState] = {
 
-    val entriesAppended =
-      EntriesAppended(rpc.term, rpc)
-    if (rpc.term < state.currentTerm) {
-      Effect
-        .persist(entriesAppended)
-        .thenReply(rpc.replyTo)(state =>
-          StatusReply.Success(
-            AppendEntriesResponse(state.currentTerm, serverId, state.log.lastLogIndex, success = false)))
-    } else
-      Effect
-        .persist(entriesAppended)
-        .thenRun { _: RaftState =>
-          timer.startSingleTimer(ElectionTimeout, randomTermTimeout)
-        }
-        .thenReply(rpc.replyTo) { s =>
-          StatusReply.Success(
-            AppendEntriesResponse(
-              s.currentTerm,
-              serverId,
-              s.log.lastLogIndex,
-              success = !Log.entryIsConflicting(state.log, rpc.prevLogIndex.toInt, rpc.prevLogTerm)))
-        }
-        .thenUnstashAll()
+    Effect
+      .persist(EntriesAppended(rpc.term, rpc))
+      .thenRun { _: RaftState =>
+        timer.startSingleTimer(ElectionTimeout, randomTermTimeout)
+      }
+      .thenReply(rpc.replyTo) { s =>
+        val appendEntriesResponse = AppendEntriesResponse(
+          s.currentTerm,
+          serverId,
+          s.log.lastLogIndex,
+          success =
+            rpc.term >= s.currentTerm && !Log.entryIsConflicting(state.log, rpc.prevLogIndex.toInt, rpc.prevLogTerm))
+        logger.info("Answering with: " + appendEntriesResponse)
+        StatusReply.Success(appendEntriesResponse)
+      }
   }
 
   private def requestVoteReceiverImpl(
@@ -143,7 +133,6 @@ object RaftServer {
         .contains(rpc.candidateId) && !log.isMoreUpToDate(rpc.lastLogIndex.toInt, rpc.lastLogTerm))) {
       Effect
         .persist(VoteExpressed(rpc.term, rpc.candidateId, voteResult = true))
-        .thenRun { _: RaftState => logger.info("Raft server voted for " + rpc.candidateId) }
         .thenReply(rpc.replyTo)(state =>
           StatusReply.Success(RequestVoteResponse(state.currentTerm, voteGranted = true)))
 
@@ -192,7 +181,6 @@ object RaftServer {
       timer: TimerScheduler[Command])(implicit timeout: Timeout): ReplyEffect[Event, RaftState] = {
     c match {
       case rpc: AppendEntries =>
-        logger.info("Received AppendEntries from " + rpc.leaderId + ":" + rpc)
         appendEntriesReceiverImpl(serverId, state, rpc, timer)
       case rpc: RequestVote =>
         requestVoteReceiverImpl(state.currentTerm, state.log, state.votedFor, rpc)
@@ -237,29 +225,16 @@ object RaftServer {
       config: Configuration,
       state: Leader,
       serverId: String,
-      context: ActorContext[Command]
-                            ): Unit = {
-    config.getConfiguration.par.foreach { server =>
-      val future = server.raftGrpcClient.appendEntries(
-        proto.AppendEntriesRequest(
-          state.currentTerm,
-          serverId,
-          state.log.lastLogIndex,
-          state.log.lastLogTerm,
-          Seq.empty,
-          state.commitIndex))
-      context.pipeToSelf(future) {
+      context: ActorContext[Command]): Unit = {
+    config.getConfiguration.par.foreach { follower =>
+      context.pipeToSelf(follower.raftGrpcClient.appendEntries(state.buildAppendEntriesRPC(serverId, follower.id))) {
         case Success(response) =>
-          RaftServer.AppendEntriesResponse(
-            response.term,
-            server.id,
-            state.log.lastLogIndex,
-            response.success)
+          RaftServer.AppendEntriesResponse(response.term, follower.id, state.log.lastLogIndex, response.success)
         case Failure(_) =>
           RaftServer.AppendEntriesResponse(
             state.currentTerm,
-            server.id,
-            state.nextIndex(server.id) - 1,
+            follower.id,
+            state.nextIndex(follower.id) - 1,
             success = false)
       }
     }
@@ -286,16 +261,16 @@ object RaftServer {
     if (state.commitIndex > state.lastApplied &&
       state.log(state.lastApplied.toInt + 1).term == command.payloadTerm &&
       command.payloadIndex == state.lastApplied + 1 &&
-      state.log(state.lastApplied.toInt + 1).payload == command.payload
-    )  {
-        ctx.askWithStatus(stateMachine, StateMachine.ClientRequest(command.payload, _)) {
-          case Success(value) =>
-            WrappedResponseToClient(status = true, Some(value), command.payloadIndex, command.maybeReplyTo)
-          case Failure(err) =>
-            throw new RuntimeException("Unknown failure: " + err.getMessage)
-        }
+      state.log(state.lastApplied.toInt + 1).payload == command.payload) {
+      ctx.askWithStatus(stateMachine, StateMachine.ClientRequest(command.payload, _)) {
+        case Success(value) =>
+          WrappedResponseToClient(status = true, Some(value), command.payloadIndex, command.maybeReplyTo)
+        case Failure(err) =>
+          throw new RuntimeException("Unknown failure: " + err.getMessage)
+      }
       Effect.none.thenNoReply()
-    } else if(state.commitIndex == state.lastApplied || state.lastApplied.toInt + 1 < command.payloadIndex) Effect.stash()
+    } else if (state.commitIndex == state.lastApplied || state.lastApplied.toInt + 1 < command.payloadIndex)
+      Effect.none.thenRun { _: RaftState => ctx.self ! command }.thenNoReply()
     else
       Effect.none.thenNoReply()
   }
@@ -309,7 +284,6 @@ object RaftServer {
       s: RaftState,
       c: Command): ReplyEffect[Event, RaftState] = {
 
-    implicit val ec = context.executionContext
     implicit val timeout: Timeout =
       Timeout.create(context.system.settings.config.getDuration("telegraft-raft-service.ask-timeout"))
 
@@ -325,7 +299,7 @@ object RaftServer {
       case Follower(_, _, _, _, _, leaderId) =>
         c match {
           // routes to leader, waits for response and sends it to client
-          case ClientRequest(request, clientRequest, replyTo) =>
+          case rpc @ ClientRequest(request, clientRequest, replyTo) =>
             leaderId match {
               case Some(id) if clientRequest.isDefined =>
                 Effect.none
@@ -338,8 +312,9 @@ object RaftServer {
                       replyTo)
                   }
                   .thenNoReply()
-              case None if clientRequest.isDefined => Effect.stash()
-              case _                               => Effect.noReply
+              case None if clientRequest.isDefined =>
+                Effect.none.thenRun { _: RaftState => context.self ! rpc }.thenNoReply()
+              case _ => Effect.noReply
             }
           case ElectionTimeout =>
             startElection(config, timer, s, serverId, context)
@@ -347,34 +322,41 @@ object RaftServer {
             commonReceiverImpl(s, context, stateMachine, serverId, c, timer)
         }
       case Leader(currentTerm, _, _, _, _, _, _) =>
-        Effect.unstashAll()
         c match {
           case ElectionTimeout =>
-            Effect
-              .persist(ElectionTimeoutElapsed(currentTerm, serverId))
-              .thenRun { state: RaftState => 
+            Effect.none
+              .thenRun { state: RaftState =>
                 sendHeartBeat(config, state.asInstanceOf[Leader], serverId, context)
-                timer.startSingleTimer(ElectionTimeout, randomHeartBeatTimeout)
+                timer.startSingleTimer(ElectionTimeout, heartBeatTimeout)
               }
               .thenNoReply()
+
           case AppendEntriesResponse(term, receiverId, lastLogEntry, success) =>
             Effect.persist(AppendEntriesResponseEvent(term, receiverId, lastLogEntry, success)).thenNoReply()
+
           case ClientRequest(_, Some(clientRequest), replyTo)
               if s.log.logEntries.exists(x => x.maybeClientId.contains(clientRequest) && x.maybeResponse.isDefined) =>
             Effect.reply(replyTo)(
               StatusReply.success(
                 s.log.logEntries.filter(_.maybeClientId.contains(clientRequest)).head.maybeResponse.get))
-          case ClientRequest(_, Some(clientRequest), _) // if client request something that is yet to be applied, just wait
-            if s.log.logEntries.exists(x => x.maybeClientId.contains(clientRequest) && x.maybeResponse.isEmpty) =>
+
+          case ClientRequest(
+                _,
+                Some(clientRequest),
+                _
+              ) // if client request something that is yet to be applied, just wait
+              if s.log.logEntries.exists(x => x.maybeClientId.contains(clientRequest) && x.maybeResponse.isEmpty) =>
             Effect.none.thenNoReply()
+
           case ClientRequest(request, clientRequest, replyTo) =>
-            logger.info("Client request received")
             Effect
               .persist(ClientRequestEvent(currentTerm, request, clientRequest))
               .thenRun { s: RaftState =>
                 val leaderState = s.asInstanceOf[Leader]
-                config.getConfiguration.par.foreach{ follower =>
-                  context.pipeToSelf(follower.raftGrpcClient.appendEntries(leaderState.buildAppendEntriesRPC(serverId, follower.id))) {
+                config.getConfiguration.par.foreach { follower =>
+                  val appendEntries = leaderState.buildAppendEntriesRPC(serverId, follower.id)
+                  logger.info("Prepared following appendEntries RPC " + appendEntries)
+                  context.pipeToSelf(follower.raftGrpcClient.appendEntries(appendEntries)) {
                     case Success(response) =>
                       RaftServer.AppendEntriesResponse(response.term, follower.id, s.log.lastLogIndex, response.success)
                     case Failure(_) =>
@@ -382,26 +364,31 @@ object RaftServer {
                   }
                 }
                 context.self ! ApplyToStateMachine(request, s.log.lastLogIndex, s.log.lastLogTerm, Some(replyTo))
-                timer.startSingleTimer(ElectionTimeout, randomHeartBeatTimeout)
+                timer.startSingleTimer(ElectionTimeout, heartBeatTimeout)
               }
               .thenNoReply()
+
           case rpc =>
             commonReceiverImpl(s, context, stateMachine, serverId, rpc, timer)
         }
+
       case _: Candidate =>
         c match {
           case ElectionTimeout =>
             startElection(config, timer, s, serverId, context)
           case RequestVoteResponse(term, voteGranted) =>
-            Effect.persist(RequestVoteResponseEvent(term, voteGranted)).thenRun{ state: RaftState =>
-              state match {
-                case leader: Leader =>
-                  sendHeartBeat(config, leader, serverId = serverId, context = context)
-                  timer.startSingleTimer(ElectionTimeout, randomHeartBeatTimeout)
-                case _ =>
+            Effect
+              .persist(RequestVoteResponseEvent(term, voteGranted))
+              .thenRun { state: RaftState =>
+                state match {
+                  case leader: Leader =>
+                    sendHeartBeat(config, leader, serverId = serverId, context = context)
+                    timer.startSingleTimer(ElectionTimeout, heartBeatTimeout)
+                  case _ =>
+                }
               }
-            }.thenNoReply()
-          case _: ClientRequest => Effect.stash()
+              .thenNoReply()
+          case rpc: ClientRequest => Effect.none.thenRun { _: RaftState => context.self ! rpc }.thenNoReply()
           case rpc =>
             commonReceiverImpl(s, context, stateMachine, serverId, rpc, timer)
         }
@@ -415,7 +402,6 @@ object RaftServer {
     Behaviors.setup[Command] { ctx =>
       Behaviors.withTimers { timer =>
         timer.startSingleTimer(ElectionTimeout, randomTermTimeout)
-        logger.info("Raft server " + serverId + " initialized as " + RaftState.empty)
         EventSourcedBehavior
           .withEnforcedReplies[Command, Event, RaftState](
             persistenceId = PersistenceId.ofUniqueId(serverId),

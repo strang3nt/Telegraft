@@ -1,24 +1,15 @@
 package com.telegraft.rafktor
 
-import akka.actor.testkit.typed.scaladsl.{ ManualTime, ScalaTestWithActorTestKit }
+import akka.actor.testkit.typed.scaladsl.{ManualTime, ScalaTestWithActorTestKit}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.pattern.StatusReply
 import akka.persistence.testkit.scaladsl.EventSourcedBehaviorTestKit
-import com.telegraft.rafktor.Log.{ CreateUser, LogEntry, TelegraftRequest, TelegraftResponse, UserCreated }
-import com.telegraft.rafktor.RaftServer.{ AppendEntries, AppendEntriesResponse, ClientRequest }
-import com.telegraft.rafktor.RaftState.{ Candidate, Follower, Leader }
-import com.telegraft.rafktor.proto.{
-  AppendEntriesRequest,
-  ClientRequestPayload,
-  ClientRequestResponse,
-  LogEntryPayload,
-  LogEntryResponse,
-  RequestVoteRequest,
-  TelegraftRaftClientServiceClient,
-  TelegraftRaftServiceClient
-}
-import com.telegraft.statemachine.proto.{ CreateUserRequest, CreateUserResponse }
-import com.typesafe.config.{ Config, ConfigFactory }
+import com.telegraft.rafktor.Log._
+import com.telegraft.rafktor.RaftServer.{AppendEntries, AppendEntriesResponse, ClientRequest}
+import com.telegraft.rafktor.RaftState.{Candidate, Follower, Leader}
+import com.telegraft.rafktor.proto.{LogEntry, _}
+import com.telegraft.statemachine.proto.{CreateUserRequest, CreateUserResponse}
+import com.typesafe.config.{Config, ConfigFactory}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.wordspec.AnyWordSpecLike

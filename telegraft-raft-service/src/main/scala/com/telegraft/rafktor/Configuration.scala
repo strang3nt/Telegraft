@@ -1,6 +1,7 @@
 package com.telegraft.rafktor
 
 import akka.actor.typed.ActorSystem
+
 import scala.jdk.CollectionConverters._
 
 object Configuration {

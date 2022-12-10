@@ -1,18 +1,12 @@
 package com.telegraft.rafktor
 
-import akka.actor.typed.{ ActorRef, ActorSystem, Scheduler }
-import com.telegraft.rafktor.proto.{
-  ClientQueryPayload,
-  ClientQueryResponse,
-  ClientRequestPayload,
-  ClientRequestResponse,
-  LogEntryResponse,
-  TelegraftRaftClientService
-}
 import akka.actor.typed.scaladsl.AskPattern.Askable
+import akka.actor.typed.{ActorRef, ActorSystem, Scheduler}
 import akka.util.Timeout
-import com.telegraft.rafktor.Log.{ TelegraftRequest, TelegraftResponse }
-import scala.concurrent.{ ExecutionContext, Future }
+import com.telegraft.rafktor.Log.{TelegraftRequest, TelegraftResponse}
+import com.telegraft.rafktor.proto._
+
+import scala.concurrent.{ExecutionContext, Future}
 
 class RaftClientServiceImpl(raftNode: ActorRef[RaftServer.Command], stateMachine: ActorRef[StateMachine.Command])(
     implicit system: ActorSystem[_])

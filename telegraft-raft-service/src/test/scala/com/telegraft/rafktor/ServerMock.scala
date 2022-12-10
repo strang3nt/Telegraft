@@ -1,7 +1,7 @@
 package com.telegraft.rafktor
 
 import akka.actor.typed.ActorSystem
-import com.telegraft.rafktor.proto.{ TelegraftRaftClientServiceClient, TelegraftRaftServiceClient }
+import com.telegraft.rafktor.proto.{TelegraftRaftClientServiceClient, TelegraftRaftServiceClient}
 
 class ServerMock(
     val id: String,

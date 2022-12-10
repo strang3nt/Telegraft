@@ -1,6 +1,6 @@
 package com.telegraft.rafktor
 
-import com.telegraft.rafktor.proto.{ TelegraftRaftClientServiceClient, TelegraftRaftServiceClient }
+import com.telegraft.rafktor.proto.{TelegraftRaftClientServiceClient, TelegraftRaftServiceClient}
 
 /**
  * A server instance is the representation of a Raft node

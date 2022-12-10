@@ -1,6 +1,6 @@
 package com.telegraft.rafktor
 
-import akka.actor.typed.{ActorSystem, MailboxSelector}
+import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.grpc.GrpcClientSettings
 import com.telegraft.statemachine.proto.TelegraftStateMachineServiceClient
@@ -51,7 +51,6 @@ object Main {
     val persistentId =
       system.settings.config.getString("telegraft-raft-service.grpc.interface") + ":" + system.settings.config
         .getString("telegraft-raft-service.grpc.port")
-    val props = MailboxSelector.fromConfig("telegraft-raft-service")
     val raftNode = context.spawnAnonymous(RaftServer.apply(persistentId, stateMachine, config))
 
     val grpcInterface =

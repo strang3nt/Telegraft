@@ -1,17 +1,9 @@
 package com.telegraft.rafktor
 
-import akka.actor.typed.{ ActorRef, Behavior }
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.{ ActorRef, Behavior }
 import akka.pattern.StatusReply
-import com.telegraft.rafktor.Log.{
-  ChatCreated,
-  ChatJoined,
-  MessageSent,
-  MessagesRetrieved,
-  TelegraftRequest,
-  TelegraftResponse,
-  UserCreated
-}
+import com.telegraft.rafktor.Log._
 import com.telegraft.statemachine.proto.TelegraftStateMachineService
 
 import scala.util.{ Failure, Success }
@@ -39,6 +31,14 @@ object StateMachine {
               ctx.pipeToSelf(telegraftService.createUser(r.convertToGrpc().value)) {
                 case Success(value) =>
                   ClientResponse(StatusReply.Success(value: UserCreated), replyTo)
+                case Failure(exception) =>
+                  ClientResponse(StatusReply.Error(exception), replyTo)
+              }
+              Behaviors.same
+            case r: Log.GetChatUsers =>
+              ctx.pipeToSelf(telegraftService.getChatUsers(r.convertToGrpc().value)) {
+                case Success(value) =>
+                  ClientResponse(StatusReply.Success(value: ChatUsersRetrieved), replyTo)
                 case Failure(exception) =>
                   ClientResponse(StatusReply.Error(exception), replyTo)
               }
