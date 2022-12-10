@@ -41,8 +41,6 @@ message LogEntry {
   // Type holds the type of the log entry.
   LogEntryPayload type = 2;
   optional ClientRequest clientRequest = 3;
-  optional LogEntryResponse response = 4;
-
 
 }
 
