@@ -176,7 +176,6 @@ object RaftServer {
       case rpc: RequestVote =>
         requestVoteReceiverImpl(state.currentTerm, state.log, state.votedFor, rpc)
       case WrappedResponseToClient(_, response, index, maybeReplyTo) =>
-        ctx.system.log.info("Applied to state machine: " + response)
         maybeReplyTo match {
           case Some(replyTo) =>
             Effect
@@ -258,7 +257,6 @@ object RaftServer {
         .thenRun { x: RaftState =>
           ctx.askWithStatus(stateMachine, StateMachine.ClientRequest(command.payload, _)) {
             case Success(value) =>
-              ctx.system.log.info("Raft server with state: " + x + "applied " + value + "to state machine")
               WrappedResponseToClient(status = true, Some(value), command.payloadIndex, command.maybeReplyTo)
             case Failure(err) =>
               ctx.system.log.error("Unknown failure: " + err.getMessage)

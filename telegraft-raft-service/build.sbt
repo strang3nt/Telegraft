@@ -8,12 +8,7 @@ lazy val ScalaParallelCollectionsVersion = "1.0.4"
 
 name := "telegraft-raft-service"
 
-enablePlugins(
-  AshScriptPlugin,
-  AkkaGrpcPlugin,
-  JavaAppPackaging,
-  DockerPlugin,
-  UniversalPlugin)
+enablePlugins(AshScriptPlugin, AkkaGrpcPlugin, DockerPlugin)
 
 organization := "com.telegraft"
 scalaVersion := "2.13.10"
