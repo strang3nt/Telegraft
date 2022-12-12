@@ -2,7 +2,7 @@
 entity User {
   *id: number <<generated>>
   --
-  *username: text
+  *username: text <<unique>>
 }
 
 entity Message {
@@ -10,7 +10,6 @@ entity Message {
   --
   *user_id: number <<FK>>
   *chat_id: number <<FK>>
-  *sent_time: timestamp
   *msg_content: text
 }
 

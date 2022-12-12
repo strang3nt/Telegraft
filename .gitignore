@@ -1,10 +1,12 @@
-*.class
+# vs code
+*.vscode
+
+# intellij idea
 .idea
-target/
-.bloop
-.bsp
-.vscode
-.metals
-null/
-project/project
-metals.sbt
+*.iml
+
+# other?
+.history
+.scala_dependencies
+.cache-main
+target

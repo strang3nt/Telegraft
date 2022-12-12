@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "com.telegraft.statemachine.proto";
+
+package com.telegraft.statemachine;
+
+service TelegraftStateMachineService {
+
+    rpc CreateUser (CreateUserRequest) returns (CreateUserResponse) {}
+    rpc SendMessage (SendMessageRequest) returns (SendMessageResponse) {}
+    rpc CreateChat (CreateChatRequest) returns (CreateChatResponse) {}
+    rpc JoinChat (JoinChatRequest) returns (JoinChatResponse) {}
+    rpc GetMessages (GetMessagesRequest) returns (GetMessagesResponse) {}
+    rpc GetChatUsers (GetChatUsersRequest) returns (GetChatUsersResponse) {}
+
+}
+
+message User {
+  uint64 userId = 1;
+  string username = 2;
+}
+
+message GetChatUsersResponse {
+  bool ok = 1;
+  repeated User users = 2;
+  optional string errorMessage = 3;
+}
+
+message GetChatUsersRequest {
+  uint64 chatId = 1;
+}
+
+message CreateUserRequest {
+  string username = 1;
+}
+
+message CreateUserResponse {
+  bool ok = 1;
+  uint64 userId = 2;
+  optional string errorMessage = 3;
+}
+
+message SendMessageRequest {
+  uint64 userId = 1;
+  uint64 chatId = 2;
+  string content = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+message SendMessageResponse {
+
+  bool ok = 1;
+  optional Message message = 2;
+  optional string errorMessage = 3;
+}
+
+message CreateChatRequest {
+  uint64 userId = 1;
+  string chatName = 2;
+  string chatDescription = 3;
+}
+
+message CreateChatResponse {
+  bool ok = 1;
+  uint64 chatId = 2;
+
+  optional string errorMessage = 3;
+}
+
+message JoinChatRequest {
+  uint64 userId = 1;
+  uint64 chatId = 2;
+}
+
+message JoinChatResponse {
+  bool ok = 1;
+  optional string errorMessage = 2;
+}
+
+message GetMessagesRequest {
+  uint64 userId = 1;
+  google.protobuf.Timestamp messagesAfter = 2;
+}
+
+message GetMessagesResponse {
+  bool ok = 1;
+  repeated Message messages = 2;
+
+  optional string errorMessage = 3;
+}
+
+message Message {
+  uint64 userId = 1;
+  uint64 chatId = 2;
+  string content = 3;
+  google.protobuf.Timestamp sentTime = 4;
+}

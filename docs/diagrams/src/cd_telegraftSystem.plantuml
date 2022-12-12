@@ -1,0 +1,48 @@
+@startuml SendGetMessage
+
+mainframe **cd** SendGetMessage
+
+skinparam style strictuml
+skinparam sequenceMessageAlign direction
+
+actor Client
+
+rectangle node1 {
+  node Facade
+  note right of Facade {
+    E.g. a user interface.
+  }
+  node Raft
+  node Telegraft
+}
+
+rectangle node2 {
+  node Facade as f
+  node Telegraft as t
+  node Raft as r
+}
+
+rectangle node3
+
+f - t
+t -- r
+r - f
+
+Client --> Facade: 1. SendMessage()\n2. JoinChat()\n3. CreateChat()\n4. CreateUser()\n5. GetMessages()
+
+
+Facade --> Raft: 1. SendMessage()\n2. JoinChat()\n3. CreateChat()\n4. CreateUser()
+note right of Raft
+  Each action is spread
+  across the Raft network.
+
+end note
+Facade --> Telegraft: 5.GetMessages()
+
+Raft --> Telegraft: 1. SendMessage()\n2. JoinChat()\n3. CreateChat()\n4. CreateUser()
+Raft -- r
+
+Raft -- node3
+node3 -- r
+
+@enduml
