@@ -7,15 +7,14 @@ import slick.jdbc.PostgresProfile.api._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-final case class Chat(id: String, chatName: String)
+final case class Chat(id: Long, chatName: String)
 
-class ChatRepository(val dbConfig: DatabaseConfig[PostgresProfile])(
-    implicit ec: ExecutionContext) {
+class ChatRepository(val dbConfig: DatabaseConfig[PostgresProfile])(implicit ec: ExecutionContext) {
 
   private[database] class ChatTable(tag: Tag) extends Table[Chat](tag, "chat") {
 
     override def * = (id, chatName).mapTo[Chat]
-    def id = column[String]("chat_id", O.PrimaryKey)
+    def id = column[Long]("id", O.AutoInc, O.PrimaryKey)
     def chatName = column[String]("chatname")
   }
 

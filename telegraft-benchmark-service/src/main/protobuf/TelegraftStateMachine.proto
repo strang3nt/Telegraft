@@ -9,17 +9,17 @@ package com.telegraft.statemachine;
 
 service TelegraftStateMachineService {
 
-  rpc CreateUser (CreateUserRequest) returns (CreateUserResponse) {}
-  rpc SendMessage (SendMessageRequest) returns (SendMessageResponse) {}
-  rpc CreateChat (CreateChatRequest) returns (CreateChatResponse) {}
-  rpc JoinChat (JoinChatRequest) returns (JoinChatResponse) {}
-  rpc GetMessages (GetMessagesRequest) returns (GetMessagesResponse) {}
-  rpc GetChatUsers (GetChatUsersRequest) returns (GetChatUsersResponse) {}
+    rpc CreateUser (CreateUserRequest) returns (CreateUserResponse) {}
+    rpc SendMessage (SendMessageRequest) returns (SendMessageResponse) {}
+    rpc CreateChat (CreateChatRequest) returns (CreateChatResponse) {}
+    rpc JoinChat (JoinChatRequest) returns (JoinChatResponse) {}
+    rpc GetMessages (GetMessagesRequest) returns (GetMessagesResponse) {}
+    rpc GetChatUsers (GetChatUsersRequest) returns (GetChatUsersResponse) {}
 
 }
 
 message User {
-  string userId = 1;
+  uint64 userId = 1;
   string username = 2;
 }
 
@@ -30,7 +30,7 @@ message GetChatUsersResponse {
 }
 
 message GetChatUsersRequest {
-  string chatId = 1;
+  uint64 chatId = 1;
 }
 
 message CreateUserRequest {
@@ -39,13 +39,13 @@ message CreateUserRequest {
 
 message CreateUserResponse {
   bool ok = 1;
-  string userId = 2;
+  uint64 userId = 2;
   optional string errorMessage = 3;
 }
 
 message SendMessageRequest {
-  string userId = 1;
-  string chatId = 2;
+  uint64 userId = 1;
+  uint64 chatId = 2;
   string content = 3;
   google.protobuf.Timestamp timestamp = 4;
 }
@@ -58,21 +58,21 @@ message SendMessageResponse {
 }
 
 message CreateChatRequest {
-  string userId = 1;
+  uint64 userId = 1;
   string chatName = 2;
   string chatDescription = 3;
 }
 
 message CreateChatResponse {
   bool ok = 1;
-  string chatId = 2;
+  uint64 chatId = 2;
 
   optional string errorMessage = 3;
 }
 
 message JoinChatRequest {
-  string userId = 1;
-  string chatId = 2;
+  uint64 userId = 1;
+  uint64 chatId = 2;
 }
 
 message JoinChatResponse {
@@ -81,7 +81,7 @@ message JoinChatResponse {
 }
 
 message GetMessagesRequest {
-  string userId = 1;
+  uint64 userId = 1;
   google.protobuf.Timestamp messagesAfter = 2;
 }
 
@@ -93,8 +93,8 @@ message GetMessagesResponse {
 }
 
 message Message {
-  string userId = 1;
-  string chatId = 2;
+  uint64 userId = 1;
+  uint64 chatId = 2;
   string content = 3;
   google.protobuf.Timestamp sentTime = 4;
 }

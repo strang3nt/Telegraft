@@ -3,13 +3,13 @@ services:
     image: telegraft-statemachine-service:latest
     restart: always
     depends_on:
-      - postgres-db
+      - postgres-db-test
     environment:
       DB_NAME: telegraft
       DB_USER: postgresuser
       DB_PASS: password
       DB_SERVER: postgres-db-test
-      DB_PORT: 5433
+      DB_PORT: 5432
     ports:
       - "8301:8301"
 #  postgres-db:

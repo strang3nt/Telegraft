@@ -7,19 +7,18 @@ import slick.jdbc.PostgresProfile.api._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-final case class UserChat(userId: String, chatId: String)
+final case class UserChat(userId: Long, chatId: Long)
 
 class UserChatRepository(
     val dbConfig: DatabaseConfig[PostgresProfile],
     val chats: ChatRepository,
     val users: UserRepository)(implicit ec: ExecutionContext) {
 
-  private[database] class UserChatTable(tag: Tag)
-      extends Table[UserChat](tag, "customer_chat") {
+  private[database] class UserChatTable(tag: Tag) extends Table[UserChat](tag, "customer_chat") {
 
     def pk = primaryKey("customer_id_chat_id", (userId, chatId))
-    def userId = column[String]("customer_id")
-    def chatId = column[String]("chat_id")
+    def userId = column[Long]("customer_id")
+    def chatId = column[Long]("chat_id")
     def user = foreignKey("customer_id_fk", userId, users.userTable)(
       _.id,
       onUpdate = ForeignKeyAction.Cascade,
@@ -33,8 +32,10 @@ class UserChatRepository(
 
   private[database] lazy val userChatTable = TableQuery[UserChatTable]
 
-  def createUserChat(userId: String, chatId: String): DBIO[Done] =
-    (userChatTable += UserChat(userId, chatId)).map(_ => Done).transactionally
+  def createUserChat(userId: Long, chatId: Long): Future[Int] =
+    dbConfig.db.run {
+      userChatTable += UserChat(userId, chatId)
+    }
 
   def deleteUserChat(r: UserChat): DBIO[Done] = {
     val q =

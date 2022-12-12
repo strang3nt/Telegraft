@@ -44,7 +44,6 @@ ThisBuild / dynverSeparator := "-"
 
 libraryDependencies ++= Seq(
   "org.scala-lang.modules" %% "scala-parallel-collections" % ScalaParallelCollectionsVersion,
-  // Akka Management powers Health Checks and Akka Cluster Bootstrapping
   "com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion,
   "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
   "com.typesafe.akka" %% "akka-http-spray-json" % AkkaHttpVersion,

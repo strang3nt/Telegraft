@@ -1,15 +1,15 @@
 package com.telegraft.rafktor
 
-import akka.actor.testkit.typed.scaladsl.{ManualTime, ScalaTestWithActorTestKit}
+import akka.actor.testkit.typed.scaladsl.{ ManualTime, ScalaTestWithActorTestKit }
 import akka.actor.typed.scaladsl.Behaviors
 import akka.pattern.StatusReply
 import akka.persistence.testkit.scaladsl.EventSourcedBehaviorTestKit
 import com.telegraft.rafktor.Log._
-import com.telegraft.rafktor.RaftServer.{AppendEntries, AppendEntriesResponse, ClientRequest}
-import com.telegraft.rafktor.RaftState.{Candidate, Follower, Leader}
-import com.telegraft.rafktor.proto.{LogEntry, _}
-import com.telegraft.statemachine.proto.{CreateUserRequest, CreateUserResponse}
-import com.typesafe.config.{Config, ConfigFactory}
+import com.telegraft.rafktor.RaftServer.{ AppendEntries, AppendEntriesResponse, ClientRequest }
+import com.telegraft.rafktor.RaftState.{ Candidate, Follower, Leader }
+import com.telegraft.rafktor.proto.{ LogEntry, _ }
+import com.telegraft.statemachine.proto.{ CreateUserRequest, CreateUserResponse }
+import com.typesafe.config.{ Config, ConfigFactory }
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -45,7 +45,7 @@ class RaftServerSpec
   private val stateMachineProbe = testKit.createTestProbe[StateMachine.Command]()
   private val mockedStateMachineBehaviour = Behaviors.receiveMessage[StateMachine.Command] {
     case StateMachine.ClientRequest(payload: CreateUser, replyTo) =>
-      replyTo ! StatusReply.success(UserCreated(ok = true, payload.userName, None)); Behaviors.same
+      replyTo ! StatusReply.success(UserCreated(ok = true, 1, None)); Behaviors.same
     case _ => Behaviors.same
   }
   private val stateMachine =
@@ -175,8 +175,7 @@ class RaftServerSpec
           Future.successful(
             ClientRequestResponse(
               status = true,
-              Some(
-                LogEntryResponse(LogEntryResponse.Payload.CreateUser(CreateUserResponse(ok = true, "NewUser", None))))))
+              Some(LogEntryResponse(LogEntryResponse.Payload.CreateUser(CreateUserResponse(ok = true, 1, None))))))
         }
       val server1 = new ServerMock("server1", raftServerClientMock1, grpcClient)(system)
       val server2 = new ServerMock("server2", raftServerClientMock2, mock[TelegraftRaftClientServiceClient])(system)
@@ -213,7 +212,7 @@ class RaftServerSpec
       eventSourcedTestKit.getState() shouldBe Follower(
         1,
         None,
-        Log(Vector(logEntry.copy(maybeResponse = Some(UserCreated(ok = true, "NewUser", None))))),
+        Log(Vector(logEntry.copy(maybeResponse = Some(UserCreated(ok = true, 1, None))))),
         0,
         0,
         Some("server1"))
@@ -250,7 +249,7 @@ class RaftServerSpec
       eventSourcedTestKit.getState() shouldBe Leader(
         0,
         None,
-        Log(Vector(logEntry1.copy(maybeResponse = Some(UserCreated(ok = true, "NewUser", None))))),
+        Log(Vector(logEntry1.copy(maybeResponse = Some(UserCreated(ok = true, 1, None))))),
         0,
         0,
         Map("server1" -> 1, "server2" -> 1),
@@ -287,8 +286,8 @@ class RaftServerSpec
         Some("leaderId"),
         Log(
           Vector(
-            LogEntry(CreateUser("NewUser1"), 0, Some(("clientId", "requestId1")), None),
-            LogEntry(CreateUser("NewUser2"), 0, Some(("clientId", "requestId1")), None))),
+            Log.LogEntry(CreateUser("NewUser1"), 0, Some(("clientId", "requestId1")), None),
+            Log.LogEntry(CreateUser("NewUser2"), 0, Some(("clientId", "requestId1")), None))),
         0,
         0,
         Some("leaderId"))
@@ -299,7 +298,7 @@ class RaftServerSpec
           "leaderId",
           1,
           1,
-          Log(Vector(LogEntry(CreateUser("AnotherNewUser"), 1, Some(("clientId", "requestId2")), None))),
+          Log(Vector(Log.LogEntry(CreateUser("AnotherNewUser"), 1, Some(("clientId", "requestId2")), None))),
           0,
           _))
 
@@ -313,8 +312,8 @@ class RaftServerSpec
         Some("leaderId"),
         Log(
           Vector(
-            LogEntry(CreateUser("NewUser"), 0, Some(("clientId", "requestId1")), None),
-            LogEntry(CreateUser("AnotherUser"), 0, Some(("clientId", "requestId2")), None))),
+            Log.LogEntry(CreateUser("NewUser"), 0, Some(("clientId", "requestId1")), None),
+            Log.LogEntry(CreateUser("AnotherUser"), 0, Some(("clientId", "requestId2")), None))),
         0,
         0,
         Some("leaderId"))
@@ -325,7 +324,7 @@ class RaftServerSpec
           "leaderId",
           0,
           0,
-          Log(Vector(LogEntry(CreateUser("AnotherNewUser"), 1, Some(("clientId", "requestId2")), None))),
+          Log(Vector(Log.LogEntry(CreateUser("AnotherNewUser"), 1, Some(("clientId", "requestId2")), None))),
           0,
           _))
 
@@ -334,8 +333,8 @@ class RaftServerSpec
         currentTerm = 1,
         log = Log(
           Vector(
-            LogEntry(CreateUser("NewUser"), 0, Some(("clientId", "requestId1")), None),
-            LogEntry(CreateUser("AnotherNewUser"), 1, Some(("clientId", "requestId2")), None))))
+            Log.LogEntry(CreateUser("NewUser"), 0, Some(("clientId", "requestId1")), None),
+            Log.LogEntry(CreateUser("AnotherNewUser"), 1, Some(("clientId", "requestId2")), None))))
     }
     "leader looks for last non conflicting entry" in {
 
@@ -344,8 +343,8 @@ class RaftServerSpec
         None,
         Log(
           Vector(
-            LogEntry(CreateUser("NewUser"), 0, Some(("clientId", "requestId1")), None),
-            LogEntry(CreateUser("AnotherNewUser"), 1, Some(("clientId", "requestId2")), None))),
+            Log.LogEntry(CreateUser("NewUser"), 0, Some(("clientId", "requestId1")), None),
+            Log.LogEntry(CreateUser("AnotherNewUser"), 1, Some(("clientId", "requestId2")), None))),
         -1,
         -1,
         Map("server1" -> 1, "server2" -> 0),
@@ -365,8 +364,8 @@ class RaftServerSpec
         Some("leaderId"),
         Log(
           Vector(
-            LogEntry(CreateUser("NewUser123"), 0, Some(("clientId", "requestId1")), None),
-            LogEntry(CreateUser("AnotherUser123"), 0, Some(("clientId", "requestId2")), None))),
+            Log.LogEntry(CreateUser("NewUser123"), 0, Some(("clientId", "requestId1")), None),
+            Log.LogEntry(CreateUser("AnotherUser123"), 0, Some(("clientId", "requestId2")), None))),
         1,
         -1,
         Some("leaderId"))

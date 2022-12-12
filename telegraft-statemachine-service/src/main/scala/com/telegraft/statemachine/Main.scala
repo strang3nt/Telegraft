@@ -1,56 +1,41 @@
 package com.telegraft.statemachine
 
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.scaladsl.Behaviors
-import akka.management.cluster.bootstrap.ClusterBootstrap
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
 import com.telegraft.statemachine.database.DatabaseRepositoryImpl
-import com.telegraft.statemachine.persistence.{ PersistentChat, PersistentUser }
-import com.telegraft.statemachine.projection.{ ChatProjection, UserProjection }
-import akka.management.scaladsl.AkkaManagement
-import org.slf4j.LoggerFactory
+import com.telegraft.statemachine.proto.TelegraftStateMachineServiceHandler
 
-import scala.util.control.NonFatal
+import scala.concurrent.{ ExecutionContext, Future }
 
 object Main {
-
-  val logger = LoggerFactory.getLogger("com.telegraft.statemachine.Main")
-
   def main(args: Array[String]): Unit = {
-
-    val system =
-      ActorSystem[Nothing](Behaviors.empty, "TelegraftStateMachineService")
-    try {
-      init(system)
-    } catch {
-      case NonFatal(e) =>
-        logger.error("Terminating due to initialization failure.", e)
-        system.terminate()
-    }
+    val system = ActorSystem("TelegraftStateMachineService")
+    new Main(system).run()
+    // ActorSystem threads will keep the app alive until `system.terminate()` is called
   }
+}
 
-  def init(system: ActorSystem[_]): Unit = {
-    AkkaManagement(system).start()
-    ClusterBootstrap(system).start()
+class Main(system: ActorSystem) {
+  def run(): Future[Http.ServerBinding] = {
+    // Akka boot up code
+    implicit val sys: ActorSystem = system
+    implicit val ec: ExecutionContext = sys.dispatcher
 
-    val repository = DatabaseRepositoryImpl.init
+    // Create service handlers
+    val service: HttpRequest => Future[HttpResponse] =
+      TelegraftStateMachineServiceHandler(new TelegraftStateMachineImpl(DatabaseRepositoryImpl.init))
 
-    PersistentUser.init(system)
-    PersistentChat.init(system)
+    // Bind service handler servers to localhost:8080/8081
+    val binding = Http()
+      .newServerAt(
+        system.settings.config.getString("telegraft-statemachine-service.grpc.interface"),
+        system.settings.config.getInt("telegraft-statemachine-service.grpc.port"))
+      .bind(service)
 
-    UserProjection.init(system, repository)
-    ChatProjection.init(system, repository)
+    // report successful binding
+    binding.foreach { binding => println(s"gRPC server bound to: ${binding.localAddress}") }
 
-    val grpcInterface =
-      system.settings.config
-        .getString("telegraft-statemachine-service.grpc.interface")
-    val grpcPort =
-      system.settings.config.getInt("telegraft-statemachine-service.grpc.port")
-    val grpcService = new TelegraftStateMachineImpl(system, repository)
-    TelegraftStateMachineServer.start(
-      grpcInterface,
-      grpcPort,
-      system,
-      grpcService)
+    binding
   }
-
 }

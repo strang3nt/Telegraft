@@ -8,25 +8,19 @@ import slick.jdbc.PostgresProfile.api._
 import java.time.Instant
 import scala.concurrent.{ ExecutionContext, Future }
 
-final case class Message(
-    id: Long,
-    userId: String,
-    chatId: String,
-    content: String,
-    timestamp: Instant)
+final case class Message(id: Long, userId: Long, chatId: Long, content: String, timestamp: Instant)
 
 class MessageRepository(
     val dbConfig: DatabaseConfig[PostgresProfile],
     val chats: ChatRepository,
     val users: UserRepository)(implicit ec: ExecutionContext) {
 
-  private[database] class MessageTable(tag: Tag)
-      extends Table[Message](tag, "message") {
+  private[database] class MessageTable(tag: Tag) extends Table[Message](tag, "message") {
 
     def timestamp = column[Instant]("sent_time", O.Default(Instant.now()))
 
-    def userId = column[String]("customer_id")
-    def chatId = column[String]("chat_id")
+    def userId = column[Long]("customer_id")
+    def chatId = column[Long]("chat_id")
 
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
 
@@ -46,15 +40,9 @@ class MessageRepository(
 
   }
 
-  def createMessage(
-      userId: String,
-      chatId: String,
-      content: String,
-      timestamp: Instant): DBIO[Done] =
-    (messageTable += Message(0, userId, chatId, content, timestamp))
-      .map(_ => Done)
-      .transactionally
-
+  def createMessage(userId: Long, chatId: Long, content: String, timestamp: Instant): Future[Long] = dbConfig.db.run {
+    messageTable.returning(messageTable.map(_.id)) += Message(0, userId, chatId, content, timestamp)
+  }
   def deleteMessage(messageId: Long): DBIO[Done] = {
     val q = messageTable.filter(_.id === messageId)
     q.delete.map(_ => Done)

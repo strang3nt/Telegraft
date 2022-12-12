@@ -1,6 +1,5 @@
 package com.telegraft.statemachine.database
 
-import akka.Done
 import slick.jdbc.PostgresProfile.api._
 
 import java.time.Instant
@@ -14,17 +13,12 @@ trait DatabaseRepository {
   val userChatRepo: UserChatRepository
 
   def createTables: Future[Unit]
-  def createChatWithUser(
-      chatId: String,
-      chatName: String,
-      userId: String): DBIO[Done]
-  def getUserChats(userId: String): Future[Seq[Chat]]
+  def createChatWithUser(chatName: String, userId: Long): Future[Long]
+  def getUserChats(userId: Long): Future[Seq[Chat]]
 
-  def getMessagesAfterTimestamp(
-      userId: String,
-      timestamp: Instant): Future[Seq[Message]]
+  def getMessagesAfterTimestamp(userId: Long, timestamp: Instant): Future[Seq[Message]]
 
-  def getChatUsers(chatId: String): Future[Seq[User]]
+  def getChatUsers(chatId: Long): Future[Seq[User]]
 }
 
 object DatabaseRepositoryImpl {
@@ -54,7 +48,7 @@ class DatabaseRepositoryImpl(
 
   import ExecutionContext.Implicits.global
 
-  override def getChatUsers(chatId: String): Future[Seq[User]] =
+  override def getChatUsers(chatId: Long): Future[Seq[User]] =
     Connection.dbConfig.db.run {
       userChatRepo.userChatTable
         .filter(_.chatId === chatId)
@@ -76,35 +70,26 @@ class DatabaseRepositoryImpl(
       .transactionally
   }
 
-  private def getUserChatsQuery(userId: String) = {
-    userChatRepo.userChatTable
-      .filter(_.userId === userId)
-      .join(chatRepo.chatTable)
-      .on(_.userId === _.id)
-      .map(_._2)
+  private def getUserChatsQuery(userId: Long) = {
+    userChatRepo.userChatTable.filter(_.userId === userId).join(chatRepo.chatTable).on(_.userId === _.id).map(_._2)
   }
 
-  def createChatWithUser(
-      chatId: String,
-      chatName: String,
-      userId: String): DBIO[Done] =
-    DBIO
-      .seq(
-        chatRepo.createChat(Chat(chatId, chatName)),
-        userChatRepo.createUserChat(chatId, userId))
-      .transactionally
-      .map(_ => Done)
+  def createChatWithUser(chatName: String, userId: Long): Future[Long] =
+    Connection.dbConfig.db.run {
+      (for {
+        i <- chatRepo.chatTable.returning(chatRepo.chatTable.map(_.id)) += Chat(0, chatName)
+        _ <- userChatRepo.userChatTable += UserChat(userId, i)
+      } yield i).transactionally
+    }
 
-  def getUserChats(userId: String): Future[Seq[Chat]] = {
+  def getUserChats(userId: Long): Future[Seq[Chat]] = {
 
     Connection.dbConfig.db.run {
       getUserChatsQuery(userId).result
     }
   }
 
-  override def getMessagesAfterTimestamp(
-      userId: String,
-      timestamp: Instant): Future[Seq[Message]] =
+  override def getMessagesAfterTimestamp(userId: Long, timestamp: Instant): Future[Seq[Message]] =
     Connection.dbConfig.db.run {
       getUserChatsQuery(userId)
         .join(messageRepo.messageTable)

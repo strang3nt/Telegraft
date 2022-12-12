@@ -4,6 +4,6 @@ import slick.basic.DatabaseConfig
 import slick.jdbc.PostgresProfile
 
 object Connection {
-  val dbConfig = DatabaseConfig.forConfig[PostgresProfile]("akka-persistence-jdbc.shared-databases.slick")
+  val dbConfig = DatabaseConfig.forConfig[PostgresProfile]("telegraft-statemachine-service.slick")
 
 }
