@@ -33,7 +33,7 @@ ON UPDATE CASCADE;
 CREATE TABLE IF NOT EXISTS customer_chat (
     customer_id INTEGER NOT NULL,
     chat_id INTEGER NOT NULL,
-    CONSTRAINT customer_id_chat_id PRIMARY KEY (customer_id, chat_id)
+    CONSTRAINT customer_id_chat_id PRIMARY KEY (customer_id,chat_id)
 );
 
 ALTER TABLE customer_chat
@@ -49,3 +49,18 @@ FOREIGN KEY(chat_id)
 REFERENCES chat (id)
 ON DELETE CASCADE
 ON UPDATE CASCADE;
+
+COPY customer(id, username)
+FROM '/docker-entrypoint-initdb.d/customers.csv'
+DELIMITER ','
+CSV HEADER;
+
+COPY chat(id, chatname)
+FROM '/docker-entrypoint-initdb.d/chats.csv'
+DELIMITER ','
+CSV HEADER;
+
+COPY customer_chat(customer_id, chat_id)
+FROM '/docker-entrypoint-initdb.d/customers_chats.csv'
+DELIMITER ','
+CSV HEADER;

@@ -1,99 +1,81 @@
 package com.telegraft.benchmark
 
 import com.github.phisgr.gatling.grpc.Predef._
-import com.telegraft.rafktor.proto.Rafktor.{ClientRequest, LogEntryPayload, LogEntryResponse}
+import com.github.phisgr.gatling.grpc.protocol.DynamicGrpcProtocol
+import com.telegraft.rafktor.proto.Rafktor.LogEntryPayload
 import io.gatling.core.Predef._
-import com.telegraft.rafktor.proto.RafktorClient.TelegraftRaftClientServiceGrpc
-import com.telegraft.rafktor.proto.RafktorClient.ClientRequestPayload
-import com.telegraft.statemachine.proto.TelegraftStateMachine.{CreateChatRequest, CreateUserRequest, JoinChatRequest}
+import com.telegraft.rafktor.proto.RafktorClient.{
+  ClientQueryPayload,
+  ClientRequestPayload,
+  TelegraftRaftClientServiceGrpc
+}
+import com.telegraft.statemachine.proto.TelegraftStateMachine.{ GetMessagesRequest, SendMessageRequest }
+import io.gatling.core.structure.{ ChainBuilder, ScenarioBuilder }
 
-import java.util.concurrent.{ConcurrentHashMap, CopyOnWriteArraySet}
+import scala.util.Random
 
 class RaftLoadSimulation extends Simulation {
 
-  val grpcConf = Seq(
-    grpc(managedChannelBuilder("localhost", 8350).usePlaintext()),
-    grpc(managedChannelBuilder("localhost", 8351).usePlaintext()),
-    grpc(managedChannelBuilder("localhost", 8352).usePlaintext()))
+  val ports: Array[Int] = Array(8350, 8351, 8352)
+  val dynamic: DynamicGrpcProtocol = dynamicChannel("target").forceParsing
 
-  val numberOfRaftServers = Integer.getInteger("raftServers", 3).toInt
-  val usersCount = Integer.getInteger("userCount", 100).toInt
-  val chatsPerUser = Integer.getInteger("chatsPerUser", 10).toInt
+  val numberOfRaftServers: Int = Integer.getInteger("raftServers", 3).toInt
+  val usersCount: Int = Integer.getInteger("userCount", 100).toInt
 
-  var userIds = new CopyOnWriteArraySet[Long]()
-  var userChats = new ConcurrentHashMap[Long, Set[Long]]()
-
-  val idFeeder = Iterator.continually(
+  val idFeeder: Iterator[Map[String, String]] = Iterator.continually(
     Map("clientId" -> java.util.UUID.randomUUID().toString, "requestId" -> java.util.UUID.randomUUID().toString))
 
-  val createUser =
-    feed(idFeeder)
-      .exec(
-        grpc("create_user")
+  val random = new Random()
+
+  /**
+   * random user first gets their messages and then sends a message to a random chat of theirs
+   */
+  val userReadsAndSendsMessages: ChainBuilder =
+    repeat(100) {
+      feed(csv("users_chats.csv").random)
+        .feed(idFeeder)
+        .feed(ports.map(port => Map("port" -> port)).shuffle.circular)
+        .exec(dynamic.setChannel { session =>
+          val port = session("port").as[Int]
+          managedChannelBuilder(s"localhost:$port").usePlaintext()
+        })
+        .exitHereIfFailed
+        .exec(
+          grpc("user_reads_messages")
+            .rpc(TelegraftRaftClientServiceGrpc.METHOD_CLIENT_QUERY)
+            .payload(session =>
+              ClientQueryPayload(
+                session("clientId").as[String],
+                session("requestId").as[String],
+                ClientQueryPayload.Payload.GetMessages(GetMessagesRequest(
+                  session("customers").as[Long],
+                  Some(com.google.protobuf.timestamp.Timestamp(java.time.Instant.now()))))))
+            .extract(_.status.some)(_.is(true))
+            .target(dynamic))
+        .feed(idFeeder)
+        .exec(grpc("user_sends_messages")
           .rpc(TelegraftRaftClientServiceGrpc.METHOD_CLIENT_REQUEST)
-          .payload(session =>
+          .payload(session => {
+
+            val userChatsArray =
+              session("chats").as[String].substring(1, session("chats").as[String].length - 1).split(";").map(_.toLong)
+
             ClientRequestPayload(
               session("clientId").as[String],
               session("requestId").as[String],
-              Some(LogEntryPayload(LogEntryPayload.Payload.CreateUser(CreateUserRequest("NewUser"))))))
-          .extract(_.payload.some)(x => x.saveAs("LOG_ENTRY_RESPONSE")))
-      .exec(session => {
-        userIds.add(
-          session("LOG_ENTRY_RESPONSE").as[Option[LogEntryResponse]].map(_.payload.createUser.get.userId).get)
-        session
-      })
-
-
-  val createChats =
-    repeat(chatsPerUser) {
-      feed(idFeeder)
-        .exec(
-          grpc("create_chat")
-            .rpc(TelegraftRaftClientServiceGrpc.METHOD_CLIENT_REQUEST)
-            .payload(session =>
-              ClientRequestPayload(
-                session("clientId").as[String],
-                session("requestId").as[String],
-                Some(
-                  LogEntryPayload(LogEntryPayload.Payload.CreateChat(CreateChatRequest(
-                    userIds.toArray()(session("counter").as[Int]).asInstanceOf[Long],
-                    "chat_name",
-                    "description"))))))
-            .extract(_.payload.some)(x => x.saveAs("LOG_ENTRY_CHAT_RESPONSE")))
-        .exec(session => {
-          userChats.compute(
-            userIds.toArray()(session("counter").as[Int]).asInstanceOf[Long],
-            (_, v) => {
-              val newElement = session("LOG_ENTRY_CHAT_RESPONSE")
-                .as[Option[LogEntryResponse]]
-                .map(_.payload.createChat.get.chatId)
-                .get
-              v match {
-                case _ if v == null => Set(newElement)
-                case _              => v + newElement
-              }
-            })
-          session
-        })
+              Some(LogEntryPayload(LogEntryPayload.Payload.SendMessage(SendMessageRequest(
+                session("customers").as[Long],
+                userChatsArray(random.nextInt(userChatsArray.length)),
+                "message",
+                Some(com.google.protobuf.timestamp.Timestamp(java.time.Instant.now())))))))
+          })
+          .extract(_.status.some)(_.is(true))
+          .target(dynamic))
+        .exec(dynamic.disposeChannel)
     }
 
-  /**
-   * random user joins a number of random chats, but not chats he is already a member
-   */
-  // val userJoinsChat = ???
-  /**
-   * random user first gets their message and then sends a message to a random chat of theirs
-   */
-  // val userReadsAndSendsMessages = ???
+  val scn: ScenarioBuilder = scenario("User reads and sends messages") // A scenario is a chain of requests and pauses
+    .exec(userReadsAndSendsMessages)
 
-  val scn = scenario("Scenario Name") // A scenario is a chain of requests and pauses
-    .exec(createUser)
-    .exec(createChats)
-    .exec(session => {
-      println(userIds.toArray.map(_.asInstanceOf[Long]).mkString(","))
-      println(userChats.entrySet().toArray.map(_.asInstanceOf[(Long, Set[Long])]).mkString(","))
-      session
-    })
-
-  setUp(scn.inject(atOnceUsers(usersCount)).protocols(grpcConf.take(numberOfRaftServers)))
+  setUp(scn.inject(atOnceUsers(usersCount)))
 }

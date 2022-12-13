@@ -1,15 +1,11 @@
 package com.telegraft.rafktor
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import com.telegraft.rafktor.Log.TelegraftResponse
 import com.telegraft.rafktor.RaftServer._
 import com.telegraft.rafktor.proto.{ AppendEntriesRequest, LogEntry, LogEntryPayload }
-import org.slf4j.LoggerFactory
 
 sealed trait RaftState extends CborSerializable {
 
-  @JsonIgnore
-  private val logger = LoggerFactory.getLogger("com.telegraft.rafktor.RaftState")
   import com.telegraft.rafktor.RaftState.{ Candidate, Follower, Leader }
 
   val currentTerm: Long
@@ -19,18 +15,14 @@ sealed trait RaftState extends CborSerializable {
   val commitIndex: Long
   val lastApplied: Long
 
-  protected def convertToFollower(newTerm: Long, newLeader: Option[String] = None): RaftState = {
-
-    val newState = Follower(
+  protected def convertToFollower(newTerm: Long, newLeader: Option[String] = None): RaftState =
+    Follower(
       currentTerm = newTerm,
       votedFor = None,
       log = this.log,
       commitIndex = this.commitIndex,
       lastApplied = this.lastApplied,
       leaderId = newLeader)
-    logger.info("Raft server became a follower with state: " + newState)
-    newState
-  }
 
   protected def updateLogWithResponse(logIndex: Int, telegraftResponse: TelegraftResponse): Log =
     Log(log.logEntries.zipWithIndex.map {
@@ -45,31 +37,24 @@ sealed trait RaftState extends CborSerializable {
     else this.commitIndex
   }
 
-  protected def becomeCandidate(serverId: String): Candidate = {
-    val newState = Candidate(
+  protected def becomeCandidate(serverId: String): Candidate =
+    Candidate(
       currentTerm = this.currentTerm + 1,
       votedFor = Some(serverId),
       log = this.log,
       commitIndex = this.commitIndex,
       lastApplied = this.lastApplied,
       countVotes = 1)
-    logger.info("Raft server became a candidate with state: " + newState)
-    newState
-  }
 
-  protected def becomeLeader(config: Configuration): Leader = {
-    val newState =
-      Leader(
-        currentTerm = this.currentTerm,
-        votedFor = None,
-        log = this.log,
-        commitIndex = this.commitIndex,
-        lastApplied = this.lastApplied,
-        nextIndex = Map.from[String, Long](config.getConfiguration.map(server => (server.id, log.length))),
-        matchIndex = Map.from[String, Long](config.getConfiguration.map(server => (server.id, -1))))
-    logger.info("Raft server became a leader with state: " + newState)
-    newState
-  }
+  protected def becomeLeader(config: Configuration): Leader =
+    Leader(
+      currentTerm = this.currentTerm,
+      votedFor = None,
+      log = this.log,
+      commitIndex = this.commitIndex,
+      lastApplied = this.lastApplied,
+      nextIndex = Map.from[String, Long](config.getConfiguration.map(server => (server.id, log.length))),
+      matchIndex = Map.from[String, Long](config.getConfiguration.map(server => (server.id, -1))))
 
   def applyEvent(event: Event, config: Configuration): RaftState
 
