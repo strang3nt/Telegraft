@@ -49,3 +49,18 @@ FOREIGN KEY(chat_id)
 REFERENCES chat (id)
 ON DELETE CASCADE
 ON UPDATE CASCADE;
+
+COPY customer(id, username)
+FROM '/docker-entrypoint-initdb.d/customers.csv'
+DELIMITER ','
+CSV HEADER;
+
+COPY chat(id, chatname)
+FROM '/docker-entrypoint-initdb.d/chats.csv'
+DELIMITER ','
+CSV HEADER;
+
+COPY customer_chat(customer_id, chat_id)
+FROM '/docker-entrypoint-initdb.d/customers_chats.csv'
+DELIMITER ','
+CSV HEADER;
