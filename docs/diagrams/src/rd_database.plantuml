@@ -1,32 +1,32 @@
 @startuml database
-entity User {
+entity customer {
   *id: number <<generated>>
   --
   *username: text <<unique>>
 }
 
-entity Message {
+entity message {
   *id: number <<generated>>
   --
-  *user_id: number <<FK>>
+  *customer_id: number <<FK>>
   *chat_id: number <<FK>>
   *msg_content: text
 }
 
-entity UserChat {
+entity customer_chat {
   *chat_id: number <<FK>>
-  *user_id: number <<FK>>
+  *customer_id: number <<FK>>
 }
 
-entity Chat {
+entity chat {
   *id: number <<generated>>
   --
   *chat_name: text
 }
 
-User ||..o{ UserChat
-UserChat }|..|| Chat
-Message }o..|| User
-Message }o..|| Chat
+customer ||..o{ customer_chat
+customer_chat }|..|| chat
+message }o..|| customer
+message }o..|| chat
 
 @enduml

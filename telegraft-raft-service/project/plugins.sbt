@@ -1,4 +1,4 @@
-addSbtPlugin("com.lightbend.akka.grpc" % "sbt-akka-grpc" % "2.1.5")
-addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.4.2")
-addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.8.1")
+addSbtPlugin("com.lightbend.akka.grpc" % "sbt-akka-grpc" % "2.2.1")
+addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.9.11")
 addSbtPlugin("com.dwijnand" % "sbt-dynver" % "4.1.1")
+ThisBuild / libraryDependencySchemes ++= Seq("org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always)

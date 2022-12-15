@@ -3,8 +3,10 @@
 
 # intellij idea
 .idea
+*.iml
 
 # other?
 .history
 .scala_dependencies
 .cache-main
+target

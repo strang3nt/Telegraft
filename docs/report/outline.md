@@ -27,6 +27,7 @@ Raft algorithm is implemented in Telegraft in order to have the consensus.
 ## Purpose (technical and scientific expectations)
 
  - Implement Raft algorithm through Akka and actors pattern
+
  - observe the performance of the new implementation through a suite of benchmarks.
 
 Benchmarks should exploit the latency of the algorithm under different conditions.
@@ -44,7 +45,7 @@ Typical workload of a chat application: many writes (messages sent) and much mor
 # Work product
 
 ## Technical choices made in the realization of the PoC
-  
+
 ## Design of the evaluation experiments
 
 ## Results of the evaluation experiments

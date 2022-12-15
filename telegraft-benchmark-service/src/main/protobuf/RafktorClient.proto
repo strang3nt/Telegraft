@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+import "TelegraftStateMachine.proto";
+import "Rafktor.proto";
+
+option java_multiple_files = true;
+option java_package = "com.telegraft.rafktor.proto";
+
+package com.telegraft.rafktor;
+
+message ClientRequestPayload {
+
+  string clientId = 1;
+  string requestId = 2;
+  LogEntryPayload payload = 3;
+}
+
+message ClientRequestResponse {
+
+  bool status = 1;
+  LogEntryResponse payload = 2;
+  optional string errorMessage = 3;
+
+}
+
+message ClientQueryPayload {
+
+  string clientId = 1;
+  string requestId = 2;
+
+  oneof payload {
+    statemachine.GetMessagesRequest getMessages = 3;
+    statemachine.GetChatUsersRequest getChatUsers = 4;
+  }
+}
+
+message ClientQueryResponse {
+
+  bool status = 1;
+
+  oneof payload {
+    statemachine.GetMessagesResponse getMessages = 2;
+    statemachine.GetChatUsersResponse getChatUsers = 3;
+  }
+
+  optional string errorMessage = 4;
+
+}
+
+// RaftService implements the raft pipelining receiver.
+service TelegraftRaftClientService {
+
+  // ClientRequest is a write request from the client
+  rpc ClientRequest(ClientRequestPayload) returns (ClientRequestResponse) {}
+  // ClientQuery is a read request from client
+  rpc ClientQuery(ClientQueryPayload) returns (ClientQueryResponse) {}
+
+}
