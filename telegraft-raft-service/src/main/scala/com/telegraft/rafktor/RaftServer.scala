@@ -251,24 +251,28 @@ object RaftServer {
       state.log(state.lastApplied.toInt + 1).term == command.payloadTerm &&
       command.payloadIndex == state.lastApplied + 1 &&
       state.log(state.lastApplied.toInt + 1).payload == command.payload) {
-
+      // ctx.system.log.info("Server with state :" + state + "is going to apply command" + command)
       Effect
         .persist(AppliedToStateMachine(state.currentTerm))
-        .thenRun { x: RaftState =>
+        .thenRun { _: RaftState =>
           ctx.askWithStatus(stateMachine, StateMachine.ClientRequest(command.payload, _)) {
             case Success(value) =>
               WrappedResponseToClient(status = true, Some(value), command.payloadIndex, command.maybeReplyTo)
             case Failure(err) =>
-              ctx.system.log.error("Unknown failure: " + err.getMessage)
+              // ctx.system.log.error("Unknown failure: " + err.getMessage)
               WrappedResponseToClient(status = false, None, command.payloadIndex, command.maybeReplyTo)
           }
         }
         .thenNoReply()
 
     } else if (state.commitIndex == state.lastApplied || state.lastApplied.toInt + 1 < command.payloadIndex) {
+      // ctx.system.log.info("Server with state :" + state + "is not ready to apply" + command)
       ctx.self ! command
       Effect.noReply
-    } else Effect.noReply
+    } else {
+      // ctx.system.log.info("Server with state :" + state + "will not apply command" + command)
+      Effect.noReply
+    }
   }
 
   private def commandHandler(

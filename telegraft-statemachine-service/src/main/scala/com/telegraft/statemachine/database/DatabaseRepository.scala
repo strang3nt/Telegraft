@@ -71,7 +71,7 @@ class DatabaseRepositoryImpl(
   }
 
   private def getUserChatsQuery(userId: Long) = {
-    userChatRepo.userChatTable.filter(_.userId === userId).join(chatRepo.chatTable).on(_.userId === _.id).map(_._2)
+    userChatRepo.userChatTable.filter(_.userId === userId).join(chatRepo.chatTable).on(_.chatId === _.id).map(_._2)
   }
 
   def createChatWithUser(chatName: String, userId: Long): Future[Long] =

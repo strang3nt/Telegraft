@@ -7,7 +7,7 @@ import akka.persistence.testkit.scaladsl.EventSourcedBehaviorTestKit
 import com.telegraft.rafktor.Log._
 import com.telegraft.rafktor.RaftServer.{ AppendEntries, AppendEntriesResponse, ClientRequest }
 import com.telegraft.rafktor.RaftState.{ Candidate, Follower, Leader }
-import com.telegraft.rafktor.proto.{ LogEntry, _ }
+import com.telegraft.rafktor.proto._
 import com.telegraft.statemachine.proto.{ CreateUserRequest, CreateUserResponse }
 import com.typesafe.config.{ Config, ConfigFactory }
 import org.scalamock.scalatest.MockFactory
@@ -44,7 +44,7 @@ class RaftServerSpec
 
   private val stateMachineProbe = testKit.createTestProbe[StateMachine.Command]()
   private val mockedStateMachineBehaviour = Behaviors.receiveMessage[StateMachine.Command] {
-    case StateMachine.ClientRequest(payload: CreateUser, replyTo) =>
+    case StateMachine.ClientRequest(_: CreateUser, replyTo) =>
       replyTo ! StatusReply.success(UserCreated(ok = true, 1, None)); Behaviors.same
     case _ => Behaviors.same
   }

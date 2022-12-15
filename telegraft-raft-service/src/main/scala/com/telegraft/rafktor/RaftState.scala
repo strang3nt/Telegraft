@@ -158,11 +158,6 @@ object RaftState {
         case AnsweredToClient(_, logIndex, telegraftResponse) =>
           this.copy(log = updateLogWithResponse(logIndex, telegraftResponse))
 
-        case e @ EntriesAppended(term, AppendEntries(_, leaderId, _, _, _, _, _)) =>
-          if (this.currentTerm <= term) {
-            this.convertToFollower(term, Some(leaderId)).applyEvent(e, config)
-          } else this
-
         case AppendEntriesResponseEvent(_, serverId, highestLogEntry, success) if success =>
           val updatedMatchIndex =
             if (highestLogEntry > this.matchIndex(serverId))

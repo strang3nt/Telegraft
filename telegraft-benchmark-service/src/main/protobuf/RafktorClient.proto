@@ -19,6 +19,7 @@ message ClientRequestResponse {
 
   bool status = 1;
   LogEntryResponse payload = 2;
+  optional string errorMessage = 3;
 
 }
 
@@ -41,6 +42,9 @@ message ClientQueryResponse {
     statemachine.GetMessagesResponse getMessages = 2;
     statemachine.GetChatUsersResponse getChatUsers = 3;
   }
+
+  optional string errorMessage = 4;
+
 }
 
 // RaftService implements the raft pipelining receiver.

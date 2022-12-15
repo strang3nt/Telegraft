@@ -13,6 +13,7 @@ import com.telegraft.statemachine.proto.TelegraftStateMachine.{ GetMessagesReque
 import io.gatling.core.structure.{ ChainBuilder, ScenarioBuilder }
 
 import scala.util.Random
+import scala.concurrent.duration._
 
 class RaftLoadSimulation extends Simulation {
 
@@ -77,5 +78,5 @@ class RaftLoadSimulation extends Simulation {
   val scn: ScenarioBuilder = scenario("User reads and sends messages") // A scenario is a chain of requests and pauses
     .exec(userReadsAndSendsMessages)
 
-  setUp(scn.inject(atOnceUsers(usersCount)))
+  setUp(scn.inject(stressPeakUsers(usersCount).during(20.seconds)))
 }
