@@ -58,6 +58,7 @@ src/main
                   TelegraftRaftServer.scala
 ```
 
+![telegraft-raft-service class diagram](../docs/diagrams/out/cd_TelegraftRaftService.svg)
 ## The `RaftServer` actor
 
 ## Implementation choices

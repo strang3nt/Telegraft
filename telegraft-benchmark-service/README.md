@@ -27,3 +27,11 @@ message to a random chat of the previous user
 ## Results
 
 [//]: # (TODO)
+In order to run the benchmark one must run the command `sbt gatling-it:test`.
+The results can be found in `/telegraft-benchmark-service/target`.
+Testing was done in a 6 core, 12 threads machine, 16 gb of ram, mileage may vary:
+a test result is uploaded in this repository, and follows a brief analysis of the benchmark run.
+
+> Note that the test stops when it reaches 100 failed requests, this is not to be considered as a failure,
+> just that the machine the test was run on is not fast enough, or better, the Raft algorithm could not 
+> provide a response to the client request fast enough.
