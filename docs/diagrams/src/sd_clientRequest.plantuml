@@ -1,0 +1,60 @@
+@startuml
+
+mainframe **cd** ClientRequest
+
+skinparam style strictuml
+autonumber
+autoactivate on
+!pragma teoz true
+skinparam sequenceMessageAlign direction
+
+actor "gRPC client" as Client
+activate Client
+boundary ":RaftClientServiceImpl" as RaftClientServiceImpl
+
+participant ":Behavior[RaftServer.Command]" as TempActor
+{time_start} Client -> RaftClientServiceImpl: ClientRequest(clientId, requestId, payload)
+
+RaftClientServiceImpl -> TempActor **: spawns
+
+
+participant "raftServer :Behavior[RaftServer.Command]" as raftServer
+
+TempActor -> raftServer: ClientRequest(clientId, requestId, payload)
+
+
+raftServer -> raftServer: ApplyToStateMachine(payload)
+
+collections "config: Configuration" as config
+participant "server: Server" as server
+
+loop for each server in config
+
+  raftServer -> config: getConfiguration()
+  raftServer <-- config: pointer to list of servers
+
+  raftServer -> server: AppendEntries(payload)
+  server --> raftServer: AppendEntriesResponse()
+  return AppendEntriesResponse
+
+end
+
+
+
+alt if payload is ready to be applied
+  raftServer -> stateMachine: ClientRequest(payload)
+  stateMachine --> raftServer: Response
+  raftServer -> TempActor: Response
+  RaftClientServiceImpl <-- TempActor: Response
+  {time_end} RaftClientServiceImpl --> Client: Response
+
+else payload not ready to be applied
+  loop until it can be applied or discarded
+    raftServer -> raftServer: ApplyToStateMachine(payload)
+  end
+  RaftClientServiceImpl --> Client: Failure response
+end
+
+{time_end} <-> {time_start} : less than 3s
+
+@enduml

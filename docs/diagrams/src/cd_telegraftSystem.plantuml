@@ -6,43 +6,34 @@ skinparam style strictuml
 skinparam sequenceMessageAlign direction
 
 actor Client
-
-rectangle node1 {
-  node Facade
-  note right of Facade {
+  note right of Client {
     E.g. a user interface.
   }
-  node Raft
-  node Telegraft
+
+rectangle node1 {
+
+  node "telegraft-raft-service" as Raft
+  node "telegraft-state-machine" as Telegraft
 }
 
 rectangle node2 {
-  node Facade as f
-  node Telegraft as t
-  node Raft as r
+  node "telegraft-raft-service" as r
+  node "telegraft-state-machine" as t
 }
 
-rectangle node3
-
-f - t
 t -- r
-r - f
 
-Client --> Facade: 1. SendMessage()\n2. JoinChat()\n3. CreateChat()\n4. CreateUser()\n5. GetMessages()
+Client -- Raft: ClientRequest(payload) >
 
+note "Each request sent to leader is \nspread across the Raft network." as n1
+n1 .. Raft
 
-Facade --> Raft: 1. SendMessage()\n2. JoinChat()\n3. CreateChat()\n4. CreateUser()
-note right of Raft
-  Each action is spread
-  across the Raft network.
+Client -- Telegraft: ClientQuery(payload) >
 
-end note
-Facade --> Telegraft: 5.GetMessages()
+Raft -- Telegraft: Apply request >
+Raft -- r: AppendEntries >
 
-Raft --> Telegraft: 1. SendMessage()\n2. JoinChat()\n3. CreateChat()\n4. CreateUser()
-Raft -- r
-
-Raft -- node3
-node3 -- r
+rectangle node3
+Raft -- node3: AppendEntries >
 
 @enduml
