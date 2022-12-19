@@ -1,4 +1,4 @@
-@startuml SendGetMessage
+@startuml cd_sendGetMessage
 
 mainframe **cd** SendGetMessage
 

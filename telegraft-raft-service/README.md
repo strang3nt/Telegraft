@@ -24,8 +24,33 @@ grpcurl -d '{
 }' -plaintext 127.0.0.1:8350 com.telegraft.rafktor.TelegraftRaftClientService.ClientRequest`
 ```
 
-## Project structure
+## Implementation choices
 
+A raft server in the cluster is a grpc server, which handles its requests and responses
+via a persistent actor, more precisely an [event sourced actor](https://doc.akka.io/docs/akka/current/typed/persistence.html#introduction):
+such actor is able to persist its state in stable storage.
+An event sourced actor is slightly different (and more complex) than a typical actor,
+since it doesn't only receive commands but produces events as well:
+
+- the actor receives a command, runs some validation checks
+- each command may produce an event, events (are the only way to) change the actor's state
+- events are what is actually persisted
+- the actor should then be able to recover its state by simply replaying all the events produced.
+
+In the Akka framework a persistent actor is an object which receives as parameters 2 functions:
+
+- a `commandHandler` which is a function from a command and a state, to an event
+- an `eventHandler` which takes as input an event and a state, and produces a new state.
+
+Producing events is particularly useful for the following reasons:
+
+- it allows to decouple reactions to commands from state changes
+- events could be observed from an external source (e.g. to keep a log, run analysis, build a dataset for queries).
+
+In the following few paragraphs I refer to the actor which serves the raft node grpc server as
+raft server or actor or simply server. Follows a short deepening about notable characteristics of the implementation.
+
+## Project structure
 
 ```
 src/main
@@ -59,27 +84,10 @@ src/main
 ```
 
 ![telegraft-raft-service class diagram](../docs/diagrams/out/cd_TelegraftRaftService.svg)
+
 ## The `RaftServer` actor
 
-## Implementation choices
 
-A raft server in the cluster is a grpc server, which handles its requests and responses
-via a persistent actor, more precisely an [event sourced actor](https://doc.akka.io/docs/akka/current/typed/persistence.html#introduction): 
-such actor is able to persist its state in storage.
-An event sourced actor is slightly different (and more complex) than a typical actor,
-since it does not only receive commands and responses but produces events as well:
-
- - the actor receives a command, runs some validation checks
- - each command may produce an Event, events (are the only way to) change the actor's state
- - the actor should then be able to recover its state by simply replaying all the events produced.
-
-Producing events is particularly useful for the following reasons:
- 
- - it allows to decouple reactions to commands from state changes 
- - events could be observed from an external source (e.g. to keep a log, run analysis, build a dataset for queries).
-
-In the following few paragraphs I refer to the actor which serves the raft node grpc server as
-raft server or actor or simply server. Follows a short deepening about notable characteristics of the implementation.
 
 ### Timers
 
@@ -134,8 +142,8 @@ larger the Raft algorithm itself is affected. The `telegraft-benchmark-service` 
 means increasing timeout errors.
 
 A practical solution would be to add to the state itself some kind of collection keeping the client responses waiting 
-to be applied: the actor could then check whether if any request can be applied before executing any commands. When 
-requests can be applied step 4 of the process above can be applied. This is left to future developments.
+to be applied: the actor could then check whether if any request can be applied before executing any command. When 
+requests can be applied step 4 of the process above can be applied. This is left for future developments.
 
 ### Timeouts
 
@@ -181,5 +189,4 @@ for future developments.
  - there is no indication against persisting more than the vote, the term and the log and the state itself.
 
 This implementation is only the basic Raft, only `AppendEntries RPC`s and `RequestVote RPC`s, in future developments
-it could be considered to add the InstallSnapshot RPC and cluster membership changes, the latter was kept in mind during
-the development process.
+it could be considered to add the InstallSnapshot RPC and cluster membership changes.

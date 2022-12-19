@@ -1,8 +1,20 @@
-[//]: # (A Raft implementation using the actor model: Telegraft, a distributed chat application)
+---
+title: 'A Raft implementation using the actor model: Telegraft, a distributed chat application'
+abstract: |
+  This report contains the experience of developing a small POC, it is an implementation of
+  the Raft protocol, using the actor model.
+  The primary goal of the experience was to learn the Raft protocol and to understand 
+  the challenges of building a distributed system. I also try to show the feasibility of
+  implementing the protocol using the actor model within Akka's typed actors.
+author:
+- Alessandro Flori
 
-# Problem statement
+institute: 
+- University of Padua
+- Department of Mathematics, Tullio Levi Civita
+...
 
-## Scope (boundary)
+# Introduction
 
 The goal of this report is to show a POC with a Raft consensus algorithm implementation, measure the performance of 
 such implementation and draw some conclusions about the results and experience.
@@ -22,7 +34,8 @@ in an environment where high scalability is needed the following 3 ideas seem th
 - the database is replicated, which is the solution explored in this report
 - a hybrid solution in which the database itself is somehow split between the servers and replicated as well.
 
-[CockroachDB](https://www.cockroachlabs.com/) and [Apache Cassandra](https://cassandra.apache.org/_/index.html) are 2 popular databases that apply the techniques described above
+[CockroachDB](https://www.cockroachlabs.com/) and [Apache Cassandra](https://cassandra.apache.org/_/index.html) are 2 
+popular databases that apply the techniques described above.
 
 In order to support multiple instances of the same application and to have always and transparently the same state 
 in every replica there must be some way to keep data synchronized correctly. 
@@ -37,13 +50,13 @@ interprets Paxos in a somewhat personal way
 
 Paxos is followed more than 20 years later by Raft, which aims at solving the problems listed above:
 
-- there shouldn't be room for interpretation, in fact where needed [Raft paper](https://raft.github.io/raft.pdf) is very meticulous, of course implementors 
-add their own flavour, but the core of the protocol is clearly defined
+- there shouldn't be room for interpretation, in fact where needed [Raft paper](https://raft.github.io/raft.pdf) is 
+- very meticulous, of course implementors add their own flavour, but the core of the protocol is clearly defined
 - it tries to be easy to learn and to understand (and the paper tries to show it).
 
 Telegraft in order to be replicated needs consensus, in fact it implements Raft.
 
-## Purpose (technical and scientific expectations)
+[//]: # (purpose and aspects to be investigated)
 
 The purpose of this POC and what I am interested in is if the Raft protocol can be implemented using the 
 [actor model](https://en.wikipedia.org/wiki/Actor_model): 
@@ -55,21 +68,11 @@ At first glance the actor model is a perfect fit for Raft: a node (or server) in
 such actor has the usual 3 states Follower, Leader, Candidate, it reacts differently, meaning replies and sends different
 messages depending on the current state. The following paragraphs will confirm (or disprove) this observation.
 
-<!-- The POC represents a typical way to deploy and use the Raft algorithm, which is a replicated database, in fact the commands a client can send to the database are none other than queries toward a database. -->
-
-## Aspects to be investigated
-
- - explore how the actor model can be used to implement the Raft algorithm.
- - stress test
- - speed (how many successful actions in a fixed amount of time)
- - latency
- - observe behavior against different number of replicas.
-
-Typical workload of a chat application: many writes (messages sent) and much more periodic small reads (messages received).
+I also want to test my implementation against a workload in order to show its performances.
+For this purpose the POC contains a benchmark, such benchmark shows the latency and how it changes as the workload
+grows.
 
 # Work product
-
-## Technical choices made in the realization of the PoC
 
 Telegraft comprises 3 separate projects:
 
@@ -81,7 +84,9 @@ All these 3 services are implemented using Scala 2.13 and communicate between ea
 A REST API was considered as well, but gRPC is well suited for a microservices oriented architecture and, it is
 surprisingly simple to implement.
 
-### The state machine: `telegraft-statemachine-service`
+![Communication between services](../diagrams/out/cd_sendGetMessage.svg)
+
+## The state machine: `telegraft-statemachine-service`
 
 As the title and the name of the service suggests, the service is the state machine mentioned in the Raft paper.
 It provides a state, which is the database, as well as something to test the Raft implementation on.
@@ -123,28 +128,149 @@ that there should be some middleware before `telegraft-statemachine-service` cap
 key before handling it to the state machine. Such middleware must generate consistent keys across all replicas. 
 I decided not to deal with this complication.
 
-### The Raft implementation: `telegraft-raft-service`
+## The Raft implementation: `telegraft-raft-service`
+
+### Brief Akka typed actors
+
+This subsection contains a brief introduction to Akka typed actors, it should be enough to follow the rest of the 
+report.
+
+The actor model
+: The actor model is a way of designing concurrent processes and systems where an actor is the most basic entity.
+An actor sends and receives messages and creates child actors and holds a local state. 
+Actors interact between each other only through messages, follows that an actor can modify another actor's state only
+by sending it a message.
+
+Akka typed actors
+: Akka typed actors are comprised of a behavior, a state and a mailbox. A behavior decides how an actor responds to 
+a message (or command, as per Akka naming conventions). The mailbox is a queue, each new command sent to an actor is 
+put here, waiting for its turn to be processed, the queue is FIFO. Actors in Akka are typed, meaning that they can only
+receive a certain type of commands. An actor in Akka is a reference to an object that contains a state and 1 or more 
+behaviors, that is because an actor's behavior can change as a consequence of receiving a certain command. Further
+information here: <https://doc.akka.io/docs/akka/current/general/actors.html>
+
+Akka event sourced behavior or persistent actor
+: An event sourced behavior (or persistent actor) is a special type of actor: it is a persistent actor, meaning it can 
+persist data in storage, and it generates events when it receives commands. Commands can no longer change the current 
+state, but commands produce events, and events change the state. Events are what is actually persisted, and
+replaying the events the order they arrived to the latest event will yield an actor's current state. Producing events
+is useful for the following reasons: it allows to decouple reactions to commands from state changes, and events could
+be fed into (or captured by) an external resource, for example to create a log or build a database.
+Further information can be found at the following link: 
+<https://doc.akka.io/docs/akka/current/typed/persistence.html#introduction>.
+
+### Design
+
+A raft server in the cluster is a grpc server, which handles its requests and responses
+via a persistent actor.
 
 ![The class diagram of the Raft implementation.](../diagrams/out/cd_TelegraftRaftService.svg)
 
-#### Testing Raft
+`telegraft-raft-service` is built around the component RaftServer: it is the Raft persistent actor, and it is
+represented as a singleton object in the class diagram, this singleton object has an `apply` method which will create
+an instance of a proper (persistent) actor. Both the commands and the events the actor receives and produces are defined
+inside the object RaftServer itself, this is an Akka convention. The state of the actor should be defined in the same
+RaftServer object, but, since the line count was getting to large an object RaftState was created. RaftState contains
+the states a Raft actor could be in as well as how to react to events.
+
+A RaftServer holds an instance of a Configuration, which holds a collection of `Server`s, which are the other 
+Raft servers in the cluster. The Configuration reads a configuration file and then builds all the servers. A `Server`
+holds information about how to reach a Raft server: sends and receives gRPC requests from a node.
+
+### Correctness of Raft implementation
+
+I created some unit tests, which test the behavior of 1 Raft persistent actor against other mocked components.
+These unit tests are not exhaustive and, while they are not static tests, meaning, the Raft actor is a real, working
+instance they do not show the correctness of the implementation or prove any properties. In fact many errors and bugs
+were solved while studying the behavior at runtime. A proper and fuller suite of integration and system tests, could 
+definitely be the subject of further development.
+
+### Raft implementation choices
+
+#### The message queue
+
+[//]: # (Interaction pattern)
+
+#### Log
+
+There is a Log class, which wraps a collection of tuples comprised of:
+
+- the log item (payload or request)
+- the term the log item was added
+- the client id and request id in order to retrieve the answer in the eventuality that the client did not receive the
+  response
+- the (optional) response the raft server received from applying the payload to the state machine.
+
+> Note that the grpc protocol itself does not carry the response of the raft server, that is because (of course) each
+> raft server must apply the request to its own state machine.
+
+#### Response timeouts
+
+In a network of nodes (raft servers) there can be many delays, such delays must be accounted and the Raft algorithm must
+not fail if a timeout happens while waiting for a response. Waiting indefinitely for a response is not reasonable in
+real world conditions. For this reason:
+
+- when doing any network request a timeout is in place (a very generous 3 seconds timeout)
+- if such timeout elapses instead of throwing an exception a "smart" answer is given, in such a way that the raft
+  algorithm can continue, the answer is harmless meaning that there will be no problems when the real answer is
+  received.
+
+#### Interaction with clients
+
+![State diagram of telegraft-raft-service client handling.](../diagrams/out/sd_clientRequest.svg)
+
+Clients can query each one of the replicas, and they will get a response:
+
+- the raft paper suggests the client should send requests only to the leader, if a client
+  sends a request to a follower the follower should answer with the leader's address
+- the implementation supports clients sending requests to a follower, the follower will then
+  forward the request to the leader and wait for the leader's answer, finally it will hand out
+  such answer to the client.
+- if the current state is `candidate` then the request is sent in the bottom of the actor's message queue,
+  hoping that the state will be different when the request is reached again.
+
+> **NOTE** that this implementation choice could lead to frequent timeout errors on the client side,
+> for this reason the raft cluster could keep track of the client identity and assign an id to each request
+> in order to not compute a request twice. This is suggested in §4 of the following
+> [document](https://web.stanford.edu/~ouster/cgi-bin/papers/OngaroPhD.pdf)
+
+
+## Deployment
+
+![Telegraft deployment communication diagram.](../diagrams/out/cd_sendGetMessage.svg)
+
+## Evaluation experiments
 
 ### The benchmark: `telegraft-benchmark-service`
 
-### Deployment
+This project is a small Scala script built with a test and benchmarking framework called [Gatling](https://gatling.io/).
+Gatling is originally a load testing tool for http protocols, it provides many interesting features, such as:
 
-### 
+ - light simulation of multiple users (in fact it uses Akka and actors under the hood)
+ - control over users, for example I can tell Gatling to slowly rump up the number of concurrent user
+ - automatic report generation.
 
+It acts both as a benchmark for a cluster of Raft nodes.
+Inside the project's folder there is a docker-compose configuration, which loads 3 Raft servers, coupled with the
+respective state machines. The state machines databases are preloaded with data.
 
+The benchmark comprises (roughly) the following steps:
 
-## Design of the evaluation experiments
+1. in parallel, an increasing number of users, until 100, during the span of 20 seconds, stay active until all the
+   responses are received or 100 failed requests are received
+2. send a gRPC `ClientQuery` request to one of the 3 Raft servers, such gRPC contains a request `GetMessages` for a
+   random user, for the state machine
+3. send a gRPC `ClientRequest` request to the same address as before, with a `SendMessage` payload, which sends a
+   message to a random chat of the previous user
+4. if any of these gRPCs responses have `status = false`, then the response is counted as a failure.
+
 
 machine specs
 
  - test with message queue
  - test without message queue
 
-## Results of the evaluation experiments
+### Results of the evaluation experiments
 
 Bottleneck/error in the implementation
 Message queue

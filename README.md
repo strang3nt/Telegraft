@@ -14,6 +14,9 @@ Since it is a distributed application there are many Telegraft nodes, each one i
 
 The project `telegraft-benchmark-service` is a project based on [Gatling](https://gatling.io/), and its purpose is to 
 provide a meaningful benchmark and stress test for the application.
+Follows a diagram which shows the interactions between the components of the project at runtime:
+
+![Communication between services](./docs/diagrams/out/cd_sendGetMessage.svg)
 
 ## How to improve this project
 
