@@ -16,13 +16,14 @@ The prerequisites are that:
 
 The benchmark comprises (roughly) the following steps:
 
-1. in parallel, an increasing number of users, until 100, during the span of 20 seconds, going on until all the 
-responses are received or 100 failed requests are received
+1. in parallel, an increasing number of users, until 100, during the span of 20 seconds, making requests until all the 
+responses are received
 2. send a gRPC `ClientQuery` request to one of the 3 addresses, such gRPC contains a request `GetMessages` for a 
 random user, for the state machine
 3. send a gRPC `ClientRequest` request to the same address as before, with a `SendMessage` payload, which sends a 
 message to a random chat of the previous user
-4. if any of these gRPCs responses have `status = false`, then the response is counted as a failure.
+4. if any of these gRPCs responses have `status = false`, then the response is counted as a failure
+5. if an actor receives a failed response, then it shuts down immediately, even if its routine did not finish.
 
 ## Results
 
@@ -31,7 +32,3 @@ In order to run the benchmark one must run the command `sbt gatling-it:test`.
 The results can be found in `/telegraft-benchmark-service/target`.
 Testing was done in a 6 core, 12 threads machine, 16 gb of ram, mileage may vary:
 a test result is uploaded in this repository, and follows a brief analysis of the benchmark run.
-
-> Note that the test stops when it reaches 100 failed requests, this is not to be considered as a failure,
-> just that the machine the test was run on is not fast enough, or better, the Raft algorithm could not 
-> provide a response to the client request fast enough.
