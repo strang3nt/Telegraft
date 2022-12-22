@@ -258,7 +258,7 @@ object RaftServer {
           ctx.askWithStatus(stateMachine, StateMachine.ClientRequest(command.payload, _)) {
             case Success(value) =>
               WrappedResponseToClient(status = true, Some(value), command.payloadIndex, command.maybeReplyTo)
-            case Failure(err) =>
+            case Failure(_) =>
               // ctx.system.log.error("Unknown failure: " + err.getMessage)
               WrappedResponseToClient(status = false, None, command.payloadIndex, command.maybeReplyTo)
           }
@@ -345,15 +345,14 @@ object RaftServer {
               .persist(ClientRequestEvent(currentTerm, request, clientRequest))
               .thenRun { s: RaftState =>
                 val leaderState = s.asInstanceOf[Leader]
-                config.getConfiguration.par.foreach { follower =>
-                  val appendEntries = leaderState.buildAppendEntriesRPC(serverId, follower.id)
-                  context.pipeToSelf(follower.raftGrpcClient.appendEntries(appendEntries)) {
+                config.getConfiguration.par.foreach(follower =>
+                  context.pipeToSelf(
+                    follower.raftGrpcClient.appendEntries(leaderState.buildAppendEntriesRPC(serverId, follower.id))) {
                     case Success(response) =>
                       RaftServer.AppendEntriesResponse(response.term, follower.id, s.log.lastLogIndex, response.success)
                     case Failure(_) =>
                       RaftServer.AppendEntriesResponse(s.currentTerm, follower.id, s.log.lastLogIndex, success = false)
-                  }
-                }
+                  })
                 context.self ! ApplyToStateMachine(request, s.log.lastLogIndex, s.log.lastLogTerm, Some(replyTo))
                 timer.startSingleTimer(ElectionTimeout, heartBeatTimeout)
               }

@@ -3,6 +3,7 @@ package com.telegraft.rafktor
 import akka.actor.typed.scaladsl.AskPattern.Askable
 import akka.actor.typed.{ ActorRef, ActorSystem, Scheduler }
 import akka.util.Timeout
+import com.telegraft.rafktor.Log.TelegraftRequest
 import com.telegraft.rafktor.proto._
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -36,36 +37,13 @@ class RaftServiceImpl(raftNode: ActorRef[RaftServer.Command])(implicit system: A
           fromLogEntriesToLog(in.entries),
           in.leaderCommitIndex,
           _))
-      .map { r =>
-        proto.AppendEntriesResponse(r.term, r.success)
-      }
-
-  private def logEntryPayloadTranslator(payload: proto.LogEntryPayload): Option[Log.LogEntryPayLoad] = {
-
-    import com.telegraft.rafktor.proto.LogEntryPayload.Payload._
-    import com.telegraft.statemachine.proto._
-
-    payload.payload match {
-      case CreateChat(CreateChatRequest(userId, chatName, chatDescription, _)) =>
-        Some(Log.CreateChat(userId, chatName, chatDescription))
-      case CreateUser(CreateUserRequest(userName, _)) =>
-        Some(Log.CreateUser(userName))
-      case JoinChat(JoinChatRequest(userId, chatId, _)) =>
-        Some(Log.JoinChat(userId, chatId))
-      case GetMessages(GetMessagesRequest(userId, messagesAfter, _)) =>
-        Some(Log.GetMessages(userId, messagesAfter.get.asJavaInstant))
-      case SendMessage(SendMessageRequest(userId, chatId, content, timestamp, _)) =>
-        Some(Log.SendMessage(userId, chatId, content, timestamp.get.asJavaInstant))
-      case GetChatUsers(GetChatUsersRequest(chatId, _)) =>
-        Some(Log.GetChatUsers(chatId))
-      case Empty => None
-    }
-  }
+      .map(r => proto.AppendEntriesResponse(r.term, r.success))
+      .recover(_ => proto.AppendEntriesResponse())
 
   private def fromLogEntriesToLog(logEntries: Seq[LogEntry]): Log =
     Log(
       logEntries
-        .map(l => (logEntryPayloadTranslator(l.getType), l.term, l.clientRequest))
+        .map(l => (TelegraftRequest.convertFromGrpc(l.getType.payload), l.term, l.clientRequest))
         .collect { case (Some(payload), term, Some(clientRequest)) =>
           Log.LogEntry(payload, term, Some((clientRequest.clientId, clientRequest.requestId)), None)
         }
@@ -78,5 +56,5 @@ class RaftServiceImpl(raftNode: ActorRef[RaftServer.Command])(implicit system: A
     raftNode
       .askWithStatus(RaftServer.RequestVote(in.term, in.candidateId, in.lastLogIndex, in.lastLogTerm, _))
       .map(r => proto.RequestVoteResponse(r.term, r.voteGranted))
-
+      .recover(_ => proto.RequestVoteResponse())
 }

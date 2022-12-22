@@ -1,12 +1,14 @@
 package com.telegraft.benchmark
 
 import com.github.phisgr.gatling.grpc.Predef._
+import com.github.phisgr.gatling.grpc.action.GrpcCallActionBuilder
 import com.github.phisgr.gatling.grpc.protocol.DynamicGrpcProtocol
 import com.telegraft.rafktor.proto.Rafktor.LogEntryPayload
 import io.gatling.core.Predef._
 import com.telegraft.rafktor.proto.RafktorClient.{
   ClientQueryPayload,
   ClientRequestPayload,
+  ClientRequestResponse,
   TelegraftRaftClientServiceGrpc
 }
 import com.telegraft.statemachine.proto.TelegraftStateMachine.{ GetMessagesRequest, SendMessageRequest }
@@ -28,6 +30,37 @@ class RaftLoadSimulation extends Simulation {
 
   val random = new Random()
 
+  private val userSendsMessage = grpc("user_sends_messages")
+    .rpc(TelegraftRaftClientServiceGrpc.METHOD_CLIENT_REQUEST)
+    .payload(session => {
+      val userChatsArray =
+        session("chats").as[String].substring(1, session("chats").as[String].length - 1).split(";").map(_.toLong)
+      ClientRequestPayload(
+        session("clientId").as[String],
+        session("requestId").as[String],
+        Some(LogEntryPayload(LogEntryPayload.Payload.SendMessage(SendMessageRequest(
+          session("customers").as[Long],
+          userChatsArray(random.nextInt(userChatsArray.length)),
+          "message",
+          Some(com.google.protobuf.timestamp.Timestamp(java.time.Instant.now())))))))
+    })
+    .extract(_.status.some)(_.is(true))
+    .target(dynamic)
+
+  private val userReadsMessages =
+    grpc("user_reads_messages")
+      .rpc(TelegraftRaftClientServiceGrpc.METHOD_CLIENT_QUERY)
+      .payload(session =>
+        ClientQueryPayload(
+          session("clientId").as[String],
+          session("requestId").as[String],
+          ClientQueryPayload.Payload.GetMessages(
+            GetMessagesRequest(
+              session("customers").as[Long],
+              Some(com.google.protobuf.timestamp.Timestamp(java.time.Instant.now()))))))
+      .extract(_.status.some)(_.is(true))
+      .target(dynamic)
+
   /**
    * random user first gets their messages and then sends a message to a random chat of theirs
    */
@@ -41,37 +74,9 @@ class RaftLoadSimulation extends Simulation {
           managedChannelBuilder(s"localhost:$port").usePlaintext()
         })
         .exitHereIfFailed
-        .exec(
-          grpc("user_reads_messages")
-            .rpc(TelegraftRaftClientServiceGrpc.METHOD_CLIENT_QUERY)
-            .payload(session =>
-              ClientQueryPayload(
-                session("clientId").as[String],
-                session("requestId").as[String],
-                ClientQueryPayload.Payload.GetMessages(GetMessagesRequest(
-                  session("customers").as[Long],
-                  Some(com.google.protobuf.timestamp.Timestamp(java.time.Instant.now()))))))
-            .extract(_.status.some)(_.is(true))
-            .target(dynamic))
+        .exec(userReadsMessages)
         .feed(idFeeder)
-        .exec(grpc("user_sends_messages")
-          .rpc(TelegraftRaftClientServiceGrpc.METHOD_CLIENT_REQUEST)
-          .payload(session => {
-
-            val userChatsArray =
-              session("chats").as[String].substring(1, session("chats").as[String].length - 1).split(";").map(_.toLong)
-
-            ClientRequestPayload(
-              session("clientId").as[String],
-              session("requestId").as[String],
-              Some(LogEntryPayload(LogEntryPayload.Payload.SendMessage(SendMessageRequest(
-                session("customers").as[Long],
-                userChatsArray(random.nextInt(userChatsArray.length)),
-                "message",
-                Some(com.google.protobuf.timestamp.Timestamp(java.time.Instant.now())))))))
-          })
-          .extract(_.status.some)(_.is(true))
-          .target(dynamic))
+        .exec(userSendsMessage)
         .exec(dynamic.disposeChannel)
     }
 
