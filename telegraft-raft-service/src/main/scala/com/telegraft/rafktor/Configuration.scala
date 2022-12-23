@@ -10,12 +10,17 @@ object Configuration {
     val configuration = new Configuration
 
     val newConfig =
-      system.settings.config.getObject("raft").unwrapped().asScala.map { case (_, address) =>
-        val hostAndPort = address.asInstanceOf[java.util.Map[String, AnyRef]].asScala
-        val host = hostAndPort("host").toString
-        val port = hostAndPort("port").toString.toInt
-        host + ":" + port -> (host, port)
-      }
+      system.settings.config
+        .getObject("raft.servers")
+        .unwrapped()
+        .asScala
+        .map { case (_, address) =>
+          val hostAndPort = address.asInstanceOf[java.util.Map[String, AnyRef]].asScala
+          val host = hostAndPort("host").toString
+          val port = hostAndPort("port").toString.toInt
+          host + ":" + port -> (host, port)
+        }
+        .take(system.settings.config.getInt("raft.number-of-nodes") - 1)
     configuration.defaultConfig = configuration.defaultConfig ++ newConfig
 
     configuration.nodes = configuration.defaultConfig.map { case (_, (host, port)) =>

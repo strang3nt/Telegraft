@@ -1,0 +1,28 @@
+@startuml raftClientProto
+
+skinparam defaultTextAlignment left
+legend top right
+- **A**: Client sends write request
+- **B**: Client sends read request
+endlegend
+
+component "telegraft-raft-service #1" as raft1
+component "telegraft-raft-service #2" as raft2
+component "telegraft-raft-service #3" as raft3
+
+component "telegraft-statemachine-service #1" as sm
+actor Client as c
+
+c --> raft1: A.1: ClientRequest() \n B.1: ClientQuery()
+c <-- raft1: A.8: ClientRequestResponse() \n B.4: ClientQueryResponse()
+
+sm <-- raft1: A.6, B.2: Request
+sm --> raft1: A.7, B.3: Response
+
+raft1 --> raft2: A.2: AppendEntriesRequest
+raft1 <-- raft2: A.4: AppendEntriesResponse
+
+raft1 --> raft3: A.3: AppendEntriesRequest
+raft1 <-- raft3: A.5: AppendEntriesResponse
+
+@enduml

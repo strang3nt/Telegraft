@@ -1,60 +1,66 @@
-@startuml
+@startuml sd_clientRequest
 
 mainframe **cd** ClientRequest
 
 skinparam style strictuml
-autonumber
 autoactivate on
+autonumber
+
 !pragma teoz true
 skinparam sequenceMessageAlign direction
 
 actor "gRPC client" as Client
-activate Client
+
 boundary ":RaftClientServiceImpl" as RaftClientServiceImpl
 
 participant ":Behavior[RaftServer.Command]" as TempActor
+
+activate Client
 {time_start} Client -> RaftClientServiceImpl: ClientRequest(clientId, requestId, payload)
 
 RaftClientServiceImpl -> TempActor **: spawns
-
+activate TempActor
 
 participant "raftServer :Behavior[RaftServer.Command]" as raftServer
 
 TempActor -> raftServer: ClientRequest(clientId, requestId, payload)
 
-
 raftServer -> raftServer: ApplyToStateMachine(payload)
 
-collections "config: Configuration" as config
-participant "server: Server" as server
+collections "server: Server" as server
 
 loop for each server in config
 
-  raftServer -> config: getConfiguration()
-  raftServer <-- config: pointer to list of servers
-
-  raftServer -> server: AppendEntries(payload)
-  server --> raftServer: AppendEntriesResponse()
+  activate raftServer
+  raftServer -> server: AppendEntriesRequest(payload)
+  raftServer <-- server: AppendEntriesResponse()
   return AppendEntriesResponse
+
+
 
 end
 
 
 
 alt if payload is ready to be applied
-  raftServer -> stateMachine: ClientRequest(payload)
-  stateMachine --> raftServer: Response
-  raftServer -> TempActor: Response
+  activate raftServer
+  raftServer -> stateMachine: Send payload
+  raftServer <-- stateMachine: Response
+  return Response
+
+  raftServer --> TempActor: Response
   RaftClientServiceImpl <-- TempActor: Response
   {time_end} RaftClientServiceImpl --> Client: Response
+  {time_end} <-> {time_start} : less than 3s
 
 else payload not ready to be applied
   loop until it can be applied or discarded
     raftServer -> raftServer: ApplyToStateMachine(payload)
   end
   RaftClientServiceImpl --> Client: Failure response
+  deactivate Client
 end
 
-{time_end} <-> {time_start} : less than 3s
+
 
 @enduml
