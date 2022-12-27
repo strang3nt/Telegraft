@@ -17,7 +17,7 @@ import scala.util.Random
 
 class RaftLoadSimulation extends Simulation {
 
-  val ports: Array[Int] = Array(8350, 8351, 8352, 8353, 8354)
+  val ports: Array[Int] = Array(8350, 8351, 8352) //, 8353, 8354)
   val dynamic: DynamicGrpcProtocol = dynamicChannel("target").forceParsing
   val usersCount: Int = Integer.getInteger("userCount", 100).toInt
 
@@ -75,8 +75,9 @@ class RaftLoadSimulation extends Simulation {
     .exec(userReadsAndSendsMessages)
 
   // setUp(scn.inject(stressPeakUsers(usersCount).during(20.seconds)))
-  setUp(scn.inject(atOnceUsers(usersCount)).throttle(reachRps(40).in(10), holdFor(1.hour)))
-  //  setUp(scn.inject(atOnceUsers(usersCount)).throttle(reachRps(100).in(10), holdFor(1.hour)))
+  // setUp(scn.inject(atOnceUsers(usersCount)).throttle(reachRps(40).in(10), holdFor(1.hour)))
+  setUp(scn.inject(atOnceUsers(usersCount)).throttle(reachRps(80).in(10), holdFor(1.hour)))
+  // setUp(scn.inject(atOnceUsers(usersCount)).throttle(reachRps(100).in(10), holdFor(1.hour)))
   //  setUp(scn.inject(atOnceUsers(usersCount)).throttle(reachRps(130).in(10), holdFor(1.hour)))
   //  setUp(scn.inject(atOnceUsers(usersCount)).throttle(reachRps(140).in(10), holdFor(1.hour)))
 }
