@@ -1,0 +1,10 @@
+{
+  "simulation": "com.telegraft.benchmark.RaftLoadSimulation",
+  "simulationId": "raftloadsimulation-20221222194004483",
+  "start": 1671738004929,
+  "description": "",
+  "scenarios": ["User reads and sends messages"],
+  "assertions": [
+
+  ]
+}
