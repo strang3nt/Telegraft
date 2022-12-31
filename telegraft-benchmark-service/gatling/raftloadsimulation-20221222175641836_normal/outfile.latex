@@ -1,0 +1,82 @@
+\href{https://gatling.io}{\includegraphics{style/logo.svg}}
+\href{https://gatling.io/docs/}{Documentation}
+
+\href{https://gatling.io/enterprise/next-step/}{Try
+\includegraphics{style/logo-enterprise.svg}}
+
+RaftLoadSimulation
+
+\hypertarget{sousMenu}{}
+\href{index.html}{Global}
+
+\protect\hypertarget{details_link}{\protect\hyperlink{}{Details}}
+
+\hypertarget{ranges}{}
+
+\hypertarget{container_number_of_requests}{}
+
+{Gatling Version} { {Version: } {3.8.4} } { {Released: } {2022-09-13} }
+
+\hypertarget{simulation-information}{}
+{Run Information}
+
+{ {Date: } {2022-12-22 17:56:42 GMT} } { {Duration: } {36s } } {
+{Description: } {---} }
+
+\hypertarget{stats}{}
+\hypertarget{statistics_title}{}
+{Stats}{Fixed height}\protect\hypertarget{toggle-stats}{}{}{Full size}
+
+{Expand all groups} {Collapse all groups}
+
+\begin{longtable}[]{@{}llllllllllllll@{}}
+\caption{}\label{container_statistics_head}\tabularnewline
+\toprule()
+\multirow{2}{*}{{Requests}} &
+\multicolumn{5}{>{\raggedright\arraybackslash}p{(\columnwidth - 26\tabcolsep) * \real{0.0000} + 8\tabcolsep}}{%
+{Executions}} &
+\multicolumn{8}{>{\raggedright\arraybackslash}p{(\columnwidth - 26\tabcolsep) * \real{0.0000} + 14\tabcolsep}@{}}{%
+{Response Time (ms)}} \\
+& {Total} & {OK} & {KO} & {\% KO} & {Cnt/s} & {Min} & {50th pct} & {75th
+pct} & {95th pct} & {99th pct} & {Max} & {Mean} & {Std Dev} \\
+\midrule()
+\endfirsthead
+\toprule()
+\multirow{2}{*}{{Requests}} &
+\multicolumn{5}{>{\raggedright\arraybackslash}p{(\columnwidth - 26\tabcolsep) * \real{0.0000} + 8\tabcolsep}}{%
+{Executions}} &
+\multicolumn{8}{>{\raggedright\arraybackslash}p{(\columnwidth - 26\tabcolsep) * \real{0.0000} + 14\tabcolsep}@{}}{%
+{Response Time (ms)}} \\
+& {Total} & {OK} & {KO} & {\% KO} & {Cnt/s} & {Min} & {50th pct} & {75th
+pct} & {95th pct} & {99th pct} & {Max} & {Mean} & {Std Dev} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+Errors
+
+\begin{longtable}[]{@{}lll@{}}
+\caption{}\label{container_errors}\tabularnewline
+\toprule()
+{Error} & {Count} & {Percentage} \\
+\midrule()
+\endfirsthead
+\toprule()
+{Error} & {Count} & {Percentage} \\
+\midrule()
+\endhead
+grpcResponse.find.is(true), but actually found false{0} & 100 & 100
+\% \\
+\bottomrule()
+\end{longtable}
+
+\hypertarget{active_users}{}
+
+\hypertarget{responsetimeDistributionContainer}{}
+
+\hypertarget{responsetimepercentilesovertimeokPercentilesContainer}{}
+
+\hypertarget{requests}{}
+
+\hypertarget{responses}{}

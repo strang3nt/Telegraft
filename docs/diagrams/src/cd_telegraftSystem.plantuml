@@ -10,30 +10,42 @@ actor Client
     E.g. a user interface.
   }
 
-rectangle node1 {
+rectangle raft-1 {
 
-  node "telegraft-raft-service" as Raft
-  node "telegraft-state-machine" as Telegraft
+  component "telegraft-raft-service" as Raft {
+    port 8350 as raft1port
+  }
+}
+rectangle statemachine-1 {
+  component "telegraft-state-machine" as Telegraft {
+    port 8301 as sm1port
+  }
 }
 
-rectangle node2 {
-  node "telegraft-raft-service" as r
-  node "telegraft-state-machine" as t
+
+rectangle raft-2 {
+  component "telegraft-raft-service" as r {
+    port 8350 as raft2port
+  }
+}
+rectangle statemachine-2 {
+  component "telegraft-state-machine" as t {
+    port 8301 as sm2port
+  }
 }
 
-t -- r
+sm2port -- raft2port
 
-Client -- Raft: ClientRequest(payload) >
+Client -- raft1port: ClientRequest() >
 
-note "Each request sent to leader is \nspread across the Raft network." as n1
-n1 .. Raft
+Client -- raft1port: ClientQuery() >
 
-Client -- Telegraft: ClientQuery(payload) >
+raft1port -- sm1port: Apply request >
+raft1port -- raft2port: AppendEntries >
 
-Raft -- Telegraft: Apply request >
-Raft -- r: AppendEntries >
-
-rectangle node3
-Raft -- node3: AppendEntries >
+rectangle "raft-3" as raft3 {
+  port "raft-3:8350" as raft3port
+}
+raft1port -- raft3port: AppendEntries >
 
 @enduml

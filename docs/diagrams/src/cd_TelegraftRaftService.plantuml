@@ -4,16 +4,6 @@ skinparam groupInheritance 2
 
 package com.telegraft.rafktor {
 
-note as N0
-  This diagram uses elements from
-  the scala syntax: types are specified
-  after ":" and type parameters are
-  between squared brackets. Collections
-  and types are the ones used in the actual
-  code.
-end note
-
-
   class Configuration {
     - servers: Set[String]
     + Configuration(servers: Set[String]): Configuration
@@ -21,17 +11,7 @@ end note
     + getServer(server: String): String
   }
 
-  note bottom of Configuration
-    Servers are parsed from the provided
-    configuration, and they are identified
-    by the following string "interface:port"
-  end note
-
-  interface Server {
-
-  }
-
-  class ServerImpl
+  interface Server
 
   namespace StateMachine {
     interface Command
@@ -41,28 +21,10 @@ end note
     {static} +apply(): Behavior[Command]
   }
 
-
-
-
   namespace RaftServer {
     interface Command
-    class AppendEntries
-    class AppendEntriesResponse
-
     interface Event
-    class EntriesApplied
-    class AppendEntriesResponseEvent
   }
-
-   note as N1
-      There are more than the displayed
-      implementations, but they are not
-      shown for the sake of brevity.
-    end note
-
-    N1 .. RaftServer.Command
-    N1 .. StateMachine.Command
-    N1 .. RaftServer.Event
 
   namespace Log {
     class LogEntry
@@ -80,20 +42,9 @@ end note
 
   class RaftServer << (S,#FF7700) Singleton >> {
     {static} +apply(serverId: String, stateMachine: ActorRef[StateMachine.Command], config: Configuration) : Behavior[Command]
-    {static} - commandHandler(config: Configuration,
-       timer: TimerScheduler[Command],
-       context: ActorContext[Command],
-       serverId: String,
-       stateMachine: ActorRef[StateMachine.Command],
-       s: RaftState,
-       c: Command): ReplyEffect[Event, RaftState]
+    {static} - commandHandler(config: Configuration, stateMachine: ActorRef[StateMachine.Command]): ReplyEffect[Event, RaftState]
   }
 
-  note right of RaftServer
-    The <u>apply</u> method is a static
-    method which returns a persistent
-    actor.
-  end note
 
   namespace RaftState {
     interface RaftState {
@@ -121,17 +72,11 @@ Log.LogEntry "1" --o "0..*" Log
 
 StateMachine "0..*"..>"1" StateMachine.Command: Received by <
 
-RaftServer.Command <|-- RaftServer.AppendEntries
-RaftServer.Command <|-- RaftServer.AppendEntriesResponse
-
-RaftServer.Event <|-- RaftServer.EntriesApplied
-RaftServer.Event <|-- RaftServer.AppendEntriesResponseEvent
-
 RaftState.RaftState <|-- RaftState.Leader
 RaftState.RaftState <|-- RaftState.Follower
 RaftState.RaftState <|-- RaftState.Candidate
 
-RaftState.Leader "0..*"..>"1" RaftServer.Event: consumes >
+RaftState.Leader "0..*"..> "1" RaftServer.Event: consumes >
 RaftState.Follower "0..*"..>"1" RaftServer.Event: consumes >
 RaftState.Candidate "0..*"..>"1" RaftServer.Event: consumes >
 
@@ -139,11 +84,9 @@ RaftState.Leader o-- Log: contains >
 RaftState.Follower o-- Log: contains >
 RaftState.Candidate o-- Log: contains >
 
-Server <|-- ServerImpl
 Configuration o-- Server
 
-
-RaftServer ..> RaftState.RaftState: contains
+RaftServer ......> RaftState.RaftState: contains >
 RaftServer "0..*" ..> "1" RaftServer.Command: < is received by
 RaftServer "0..*" ..> "1" RaftServer.Event: < is produced by
 RaftServer "0..*" ..> "1" Server: sends messages to >
