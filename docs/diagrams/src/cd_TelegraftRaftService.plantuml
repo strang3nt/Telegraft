@@ -4,6 +4,40 @@ skinparam groupInheritance 2
 
 package com.telegraft.rafktor {
 
+  namespace Log {
+    class LogEntry
+  }
+
+  class Log {
+    + logEntries: Vector[LogEntry]
+    + Log(logEntries: Vector[LogEntry]): Log
+    + apply(index: Int): LogEntry
+    + length(): Int
+    + lastLogTerm(): Long
+    + appendEntries(newEntries: Log, prevLogIndex: Int): Log
+    {static} + empty(): Log
+  }
+
+  namespace RaftState {
+    interface RaftState {
+      Log: LogEntry[]
+      currentTerm: Long
+      votedFor: Option<String>
+      log: Log
+      commitIndex: Long
+      lastApplied: Long
+
+      + applyEvent(state: RaftState, event: Event): RaftState
+
+    }
+    class Leader {
+      + matchIndex: Map[String, Long]
+      + nextIndex: Map[String, Long]
+    }
+    class Follower
+    class Candidate
+  }
+
   class Configuration {
     - servers: Set[String]
     + Configuration(servers: Set[String]): Configuration
@@ -26,47 +60,20 @@ package com.telegraft.rafktor {
     interface Event
   }
 
-  namespace Log {
-    class LogEntry
-  }
-
-  class Log {
-    + logEntries: Vector[LogEntry]
-    + Log(logEntries: Vector[LogEntry]): Log
-    + apply(index: Int): LogEntry
-    + length(): Int
-    + lastLogTerm(): Long
-    + appendEntries(newEntries: Log, prevLogIndex: Int): Log
-    {static} + empty(): Log
-  }
-
   class RaftServer << (S,#FF7700) Singleton >> {
     {static} +apply(serverId: String, stateMachine: ActorRef[StateMachine.Command], config: Configuration) : Behavior[Command]
     {static} - commandHandler(config: Configuration, stateMachine: ActorRef[StateMachine.Command]): ReplyEffect[Event, RaftState]
   }
 
-
-  namespace RaftState {
-    interface RaftState {
-      Log: LogEntry[]
-      currentTerm: Long
-      votedFor: Option<String>
-      log: Log
-      commitIndex: Long
-      lastApplied: Long
-
-      + applyEvent(state: RaftState, event: Event): RaftState
-
-    }
-    class Leader {
-      + matchIndex: Map[String, Long]
-      + nextIndex: Map[String, Long]
-    }
-    class Follower
-    class Candidate
-  }
-
 }
+
+
+RaftServer ......> RaftState.RaftState: contains >
+RaftServer "0..*" ..> "1" RaftServer.Command: < is received by
+RaftServer "0..*" ..> "1" RaftServer.Event: < is produced by
+RaftServer "0..*" ..> "1" Server: sends messages to >
+RaftServer "1" ..> Configuration: holds >
+RaftServer "1" ..> StateMachine: sends messages to >
 
 Log.LogEntry "1" --o "0..*" Log
 
@@ -86,11 +93,6 @@ RaftState.Candidate o-- Log: contains >
 
 Configuration o-- Server
 
-RaftServer ......> RaftState.RaftState: contains >
-RaftServer "0..*" ..> "1" RaftServer.Command: < is received by
-RaftServer "0..*" ..> "1" RaftServer.Event: < is produced by
-RaftServer "0..*" ..> "1" Server: sends messages to >
-RaftServer "1" ..> Configuration: holds >
-RaftServer "1" ..> StateMachine: sends messages to >
+
 
 @enduml
