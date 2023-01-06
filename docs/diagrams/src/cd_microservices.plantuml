@@ -34,7 +34,7 @@ rectangle {
   s2 -0)- r2
 }
 
-r2 -(0)- grpcServer: gRPC raft protocol
+r2 -(0)- grpcServer
 
 r3 -(0)- grpcServer
 r2 -(0)- r3

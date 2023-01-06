@@ -1,4 +1,9 @@
 @startuml database
+
+skinparam linetype ortho
+
+left to right direction
+
 entity customer {
   *id: number <<generated>>
   --
