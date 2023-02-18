@@ -1,7 +1,8 @@
-@startuml
+@startuml telegraftRaftService
 
 skinparam groupInheritance 2
 skinparam linetype polyline
+skinparam defaultFontSize 16
 
 package com.telegraft.rafktor {
 

@@ -1,0 +1,38 @@
+@startuml logReplication
+
+skinparam componentStyle rectangle
+left to right direction
+
+skinparam defaultFontSize 16
+
+circle Client as c
+
+rectangle RaftServer as 2 #CAF1DE {
+  database e [
+    Event
+    journal
+  ]
+  actor Leader as l
+}
+
+rectangle RaftServer as 1 #ffcccb {
+
+  actor Follower as f
+    database i [
+      Event
+      journal
+    ]
+
+}
+
+c --> l: **1** ClientRequest <size:15><&envelope-closed></size>
+l --> e: **2** ClientRequestEvent <size:15><&hard-drive></size>
+l --> l: **3** ApplyToStateMachine <size:15><&envelope-closed></size>
+l --> f: **4** AppendEntries <size:15><&envelope-closed></size>
+f --> i: **5** EntriesAppended <size:15><&hard-drive></size>
+f --> l: **6** AppendEntriesResponse <size:15><&envelope-closed></size>
+l --> l: **7** WrappedResponseToClient <size:15><&envelope-closed></size>
+l --> e: **8** AnsweredToClient <size:15><&hard-drive></size>
+l --> c: **9** Response <size:15><&envelope-closed></size>
+
+@enduml

@@ -1,17 +1,16 @@
-@startuml raftNode_stateDiagram
+@startuml raftStateDiagram
 
-state RaftNode {
+skinparam defaultFontSize 16
+left to right direction
 
-  [*] --> Follower: System started
-  
-  Candidate --> Follower: Discovered new leader\nor new term
-  Follower --> Candidate: Timer expired
+[*] --> Follower: starts up
 
-  Candidate --> Candidate: Timer expired
+Candidate --> Follower: discovers current\nleader or new term
+Follower --> Candidate: times out,\nstarts election
 
-  Candidate --> Leader: Received votes\nfrom the majority
-  Leader --> Follower: Discovered server\nwith higher term
+Candidate --> Candidate: times out,\nnew election
 
-}
+Candidate --> Leader: receives votes from\nthe majority of servers
+Leader --> Follower: discovers server\nwith higher term
 
 @enduml

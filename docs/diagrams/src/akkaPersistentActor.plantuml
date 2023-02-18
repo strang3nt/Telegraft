@@ -1,0 +1,19 @@
+@startuml
+
+allowmixing
+left to right direction
+
+circle Client
+actor "Persistent actor" as alice
+database e [
+  Event
+  journal
+]
+
+Client --> alice : **1** Command <size:20><&envelope-closed></size>
+
+alice --> e: **2** Event <size:20><&hard-drive></size>
+
+alice --> Client: **3** Response <size:20><&envelope-closed></size>
+
+@enduml

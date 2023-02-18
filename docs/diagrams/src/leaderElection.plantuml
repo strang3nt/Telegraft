@@ -1,0 +1,31 @@
+@startuml leaderElection
+
+skinparam componentStyle rectangle
+skinparam defaultFontSize 16
+
+rectangle RaftServer as 2 #CAF1DE {
+  database e [
+    Event
+    journal
+  ]
+  actor Candidate as c
+}
+
+rectangle RaftServer as 1  #ffcccb{
+
+  actor Follower as f
+    database i [
+      Event
+      journal
+    ]
+
+}
+
+c --> c: **1** ElectionTimeout
+c -> e: **2** ElectionTimeoutEvent <size:15><&hard-drive></size>
+c --> f: **3** RequestVote <size:15><&envelope-closed></size>
+f -> i: **4** VoteExpressed <size:15><&hard-drive></size>
+f -> c: **5** RequestVoteResponse <size:15><&envelope-closed></size>
+c --> e: **6** RequestVoteResponseEvent <size:15><&hard-drive></size>
+
+@enduml

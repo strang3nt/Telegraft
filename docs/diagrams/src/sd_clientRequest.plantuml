@@ -1,6 +1,7 @@
-@startuml sd_clientRequest
+@startuml clientRequest
 
 mainframe **cd** ClientRequest
+skinparam defaultFontSize 16
 
 skinparam style strictuml
 autoactivate on

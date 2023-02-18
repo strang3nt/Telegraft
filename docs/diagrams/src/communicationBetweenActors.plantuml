@@ -1,0 +1,44 @@
+@startuml
+
+skinparam roundCorner 10
+left to right direction
+skinparam defaultFontSize 16
+
+object Command #CDF5F6 {
+
+- ApplyToStateMachine
+- AppendEntries
+- RequestVote
+- ClientRequest
+- WrappedResponseToClient
+- ElectionTimeout
+- AppendEntriesResponse
+- RequestVoteResponse
+
+}
+
+object Event #EFF9DA {
+
+~ AppliedToStateMachine
+~ EntriesAppended
+~ VoteExpressed
+~ ClientRequestEvent
+~ AnsweredToClient
+~ ElectionTimeoutElapsed
+~ AppendEntriesResponseEvent
+~ RequestVoteResponseEvent
+}
+
+
+
+Command::ApplyToStateMachine --> Event::AppliedToStateMachine
+Command::AppendEntries --> Event::EntriesAppended
+Command::RequestVote --> Event::VoteExpressed
+Command::ClientRequest --> Event::ClientRequestEvent
+Command::WrappedResponseToClient --> Event::AnsweredToClient
+Command::ElectionTimeout --> Event::ElectionTimeoutElapsed
+Command::AppendEntriesResponse --> Event::AppendEntriesResponseEvent
+Command::RequestVoteResponse --> Event::RequestVoteResponseEvent
+
+
+@enduml
