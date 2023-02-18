@@ -1,34 +1,41 @@
 # telegraft-benchmark-service
 
-This project is a benchmark and a stress test for a raft cluster (of `telegraft-raft-service`s).
-Sends network packets and waits for a successful response.
+This project is a benchmark and a stress test for a cluster of `telegraft-raft-service`s.
+It sends network packets and waits for a successful response.
 Network packets are sent towards `localhost:8350`, `localhost:8351` and `localhost:8352`.
-A docker-compose configuration which starts all the necessary services and populates the database can be found
-in this folder.
+A docker-compose configuration starts all the necessary services and populates the database. 
+2 docker compose configurations are provided: follows an example.
+
+![Docker configuration 3 servers example](../docs/diagrams/out/sendGetMessage.svg)
 
 ## The benchmark
 
-The prerequisites are that:
+Before running the benchmark it is needed to:
 
- - there are local docker images of both `telegraft-raft-service` and `telegraft-statemachine-service`
- - the database is preloaded with the data provided in `/src/main/resources/db` (which is satisfied as long as the 
-   benchmark is run against the provided docker-compose configuration).
+ - install local docker images of `telegraft-raft-service` and `telegraft-statemachine-service`
+ - load the databases with some data, the database is automatically preloaded with data from `/src/main/resources/db`.
 
-The benchmark comprises (roughly) the following steps:
+The benchmark is composed of the following steps.
+First, in parallel, an increasing number of users make a sequence requests until all the 
+responses are received, such requests are, in order:
 
-1. in parallel, an increasing number of users, until 100, during the span of 20 seconds, making requests until all the 
-responses are received
-2. send a gRPC `ClientQuery` request to one of the 3 addresses, such gRPC contains a request `GetMessages` for a 
-random user, for the state machine
-3. send a gRPC `ClientRequest` request to the same address as before, with a `SendMessage` payload, which sends a 
+1. send a gRPC `ClientQuery` request to one of the 3 addresses, such gRPC contains a request `GetMessages` for a 
+random user
+2. send a gRPC `ClientRequest` to the same address as before, with a `SendMessage` payload, which sends a 
 message to a random chat of the previous user
-4. if any of these gRPCs responses have `status = false`, then the response is counted as a failure
-5. if an actor receives a failed response, then it shuts down immediately, even if its routine did not finish.
+3. if any of these gRPCs responses have `status = false`, then the response is counted as a failure
+4. if an actor receives a failed response, then it shuts down immediately, even if its routine did not finish.
 
-## Results
+I designed 2 different types of benchmarks:
 
-[//]: # (TODO)
-In order to run the benchmark one must run the command `sbt gatling-it:test`.
-The results can be found in `/telegraft-benchmark-service/target`.
-Testing was done in a 6 core, 12 threads machine, 16 gb of ram, mileage may vary:
-a test result is uploaded in this repository, and follows a brief analysis of the benchmark run.
+ - a stress test, each client (100 clients) makes in parallel the requests from above, I designed this test, in
+order to run as fast as possible, for a set amount of time
+ - a throttled test, a test with parallel requests capped.
+
+The goal is to study the response times of 2 docker configuration, with 3 and 5 Telegraft servers.
+
+## Instructions
+
+1. run one of the 2 docker compose configurations
+2. compile and run the project via `sbt gatling-it:test`
+3. when finished the folder `/target/gatling-it` will contain the test results.

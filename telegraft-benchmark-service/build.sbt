@@ -13,7 +13,6 @@ Compile / PB.targets ++= Seq(
   scalapb.gen() -> (Compile / sourceManaged).value / "scalapb"
 )
 scalacOptions ++= Seq(
-  "-release:17",
   "-deprecation",
   "-feature",
   "-unchecked",

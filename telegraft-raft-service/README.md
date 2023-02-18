@@ -1,32 +1,8 @@
 # telegraft-raft-service (Rafktor)
 
-## Build and start locally
-
-Requires a JDK distribution, preferably version 17, and a Docker installation.
-Building and starting the project requires the following command:
-
-1. `sbt docker:publishLocal` 
-2. `docker-compose up`: the project is shipped with a docker-compose configuration, which launches 9 docker containers, 3 triads of
-   a Postgresql database, a state machine (`telegraft-statemachine-service`) and a Raft server (this project).
-
-Then you can try and create a user, for example using `grpcurl` or a grpc client such as [BloomRPC](https://github.com/bloomrpc/bloomrpc).
-The cluster can be reached from local ports 8350, 8351, 8352. Follows an example of grpc command which creates a new user:
-
-```
-grpcurl -d '{
-  "clientId": "ffce7200-7528-4649-92e7-ebea3b76ad69",
-  "requestId": "13cbc801-1106-4b31-8997-71c1856",
-  "payload": {
-    "createUser": {
-      "username": "Hello"
-    }
-  }
-}' -plaintext 127.0.0.1:8350 com.telegraft.rafktor.TelegraftRaftClientService.ClientRequest`
-```
-
 ## Implementation choices
 
-A raft server in the cluster is a grpc server, which handles its requests and responses
+A Raft server in the cluster is a gRPC server, which handles requests and responses
 via a persistent actor, more precisely an [event sourced actor](https://doc.akka.io/docs/akka/current/typed/persistence.html#introduction):
 such actor is able to persist its state in stable storage.
 An event sourced actor is slightly different (and more complex) than a typical actor,
@@ -47,8 +23,7 @@ Producing events is particularly useful for the following reasons:
 - it allows to decouple reactions to commands from state changes
 - events could be observed from an external source (e.g. to keep a log, run analysis, build a dataset for queries).
 
-In the following few paragraphs I refer to the actor which serves the raft node grpc server as
-raft server or actor or simply server. Follows a short deepening about notable characteristics of the implementation.
+![Representation of persistent actor](../docs/diagrams/out/akkaPersistentActor.svg)
 
 ## Project structure
 
@@ -83,15 +58,24 @@ src/main
                   TelegraftRaftServer.scala
 ```
 
-![telegraft-raft-service class diagram](../docs/diagrams/out/cd_TelegraftRaftService.svg)
+![telegraft-raft-service class diagram](../docs/diagrams/out/telegraftRaftService.svg)
 
 ## The `RaftServer` actor
 
+These figures document the behavior of the Raft actor. First the messages and events an actor handles:
 
+![RaftServer actor messages and events](../docs/diagrams/out/communicationBetweenActors.svg)
+
+In the following I provide the sequence of messages and events of an actor for the leader election and log replication
+process. Sections 5.2 and 5.3 of the Raft paper, <https://raft.github.io/raft.pdf>, respectively.
+
+![RaftServer leader election process](../docs/diagrams/out/leaderElection.svg)
+
+![RaftServer log replication process](../docs/diagrams/out/logReplication.svg)
 
 ### Timers
 
-Each raft server implements a timer: such timer works both as the election timeout and
+Each Raft server implements a timer: such timer works both as the election timeout and
 the idle time after which the leader sends heartbeats to every other raft server in the cluster.
 The timer is a random wait between 150 and 300 ms, as per Raft paper suggestion.
 Each time the timer is elapsed the actor sends to itself a command:
@@ -109,9 +93,9 @@ between heartbeats is set to 100 milliseconds.
 
 ### Clients interaction
 
-Clients can query each one of the replicas, and they will get a response:
+Clients can query any replica, and they will get a response:
 
- - the raft paper suggests the client should send requests only to the leader, if a client
+ - the Raft paper suggests the client should send requests only to the leader, if a client
    sends a request to a follower the follower should answer with the leader's address
  - the implementation supports clients sending requests to a follower, the follower will then
    forward the request to the leader and wait for the leader's answer, finally it will hand out
@@ -120,7 +104,7 @@ Clients can query each one of the replicas, and they will get a response:
    hoping that the state will be different when the request is reached again.
 
 > **NOTE** that this implementation choice could lead to frequent timeout errors on the client side,
-> for this reason the raft cluster could keep track of the client identity and assign an id to each request
+> for this reason the Raft cluster could keep track of the client identity and assign an id to each request
 > in order to not compute a request twice. This is suggested in §4 of the following 
 > [document](https://web.stanford.edu/~ouster/cgi-bin/papers/OngaroPhD.pdf)
 
@@ -136,12 +120,12 @@ What currently happens is:
    response from the state machine, the response is then sent back to the actor, and when such response is reached in
    the message queue it is finally sent to the client.
 
-This is a long and prone-to-programmer-error process, it is slow and when there are lots of client requests an actor's
-queue can be filled with requests waiting to be applied, which will be applied very slowly since when the queue grows 
-larger the Raft algorithm itself is affected. The `telegraft-benchmark-service` shows it: more client requests
+It is a slow process and when there are lots of client requests, an actor's
+queue can be filled with requests waiting to be applied, which will be applied very slowly, when the queue grows 
+larger the Raft algorithm itself is affected. `telegraft-benchmark-service` shows it: more client requests
 means increasing timeout errors.
 
-A practical solution would be to add to the state itself some kind of collection keeping the client responses waiting 
+A practical solution would be to add to the state of the actor itself some kind of collection keeping the client responses waiting 
 to be applied: the actor could then check whether if any request can be applied before executing any command. When 
 requests can be applied step 4 of the process above can be applied. This is left for future developments.
 
@@ -169,17 +153,30 @@ There is a Log class, which wraps a collection of tuples of:
 > Note that the grpc protocol itself does not carry the response of the raft server, that is because (of course) each
 > raft server must apply the request to its own state machine.
 
-### The message queue
 
-Any actor has its own message queue, each rpc request and response is received and put into the 
-message queue waiting to be processed. The default message queue in Akka is unbound and FIFO, but it can be changed,
-for example the concept of priority.
+## Build and start locally
 
-[//]: # (Further information on how Akka actors message queue can be found at the following link)
+Requires a JDK distribution, preferably version 17, and a Docker installation.
+Building and starting the project requires the following commands:
 
-This could lead to interesting observations, such as: how does giving priority to any commands other than the Raft RPCs
-affect response times? For example how about giving the highest priority to shipping responses to clients? It is left
-for future developments.
+1. `sbt docker:publishLocal`
+2. `docker-compose up`: the project is shipped with a docker-compose configuration, which launches 9 docker containers, 3 triads of
+   a Postgresql database, a state machine (`telegraft-statemachine-service`) and a Raft server (this project).
+
+To make a gRPC call `grpcurl` can be used, or a grpc client such as [BloomRPC](https://github.com/bloomrpc/bloomrpc).
+The cluster can be reached from local ports 8350, 8351, 8352. Follows an example of grpc command which creates a new user:
+
+```
+grpcurl -d '{
+  "clientId": "ffce7200-7528-4649-92e7-ebea3b76ad69",
+  "requestId": "13cbc801-1106-4b31-8997-71c1856",
+  "payload": {
+    "createUser": {
+      "username": "Hello"
+    }
+  }
+}' -plaintext 127.0.0.1:8350 com.telegraft.rafktor.TelegraftRaftClientService.ClientRequest`
+```
 
 ## Further development and investigation
 
