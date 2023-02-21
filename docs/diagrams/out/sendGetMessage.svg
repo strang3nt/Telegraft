@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="536px" preserveAspectRatio="none" style="width:1150px;height:536px;background:#FFFFFF;" version="1.1" viewBox="0 0 1150 536" width="1150px" zoomAndPan="magnify"><defs/><g><rect fill="#FFFFFF" height="520.1358" style="stroke:#181818;stroke-width:1.5;" width="1139" x="5" y="10"/><path d="M152,10 L152,22.0679 L142,32.0679 L5,32.0679 " fill="none" style="stroke:#181818;stroke-width:1.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="16" x="8" y="25.9659">cd</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="117" x="28" y="25.9659">SendGetMessage</text><!--MD5=[9615fe6db3c92f74ffe9cfd916d78178]
+cluster raft-1--><g id="cluster_raft-1"><rect fill="none" height="218" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="224" x="119" y="189.5679"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="38" x="212" y="206.5339">raft-1</text></g><!--MD5=[2ae80244a2f4397c58024167796a57af]
+cluster Raft--><g id="cluster_Raft"><rect fill="none" height="150" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="165" x="135" y="241.5679"/><rect fill="none" height="10" style="stroke:#181818;stroke-width:1.0;" width="15" x="280" y="246.5679"/><rect fill="none" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="278" y="248.5679"/><rect fill="none" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="278" y="252.5679"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="143" x="146" y="269.5339">telegraft-raft-service</text></g><!--MD5=[60388597a8a9ff1b8370733819e68a30]
+cluster statemachine-1--><g id="cluster_statemachine-1"><rect fill="none" height="196" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="244" x="615" y="312.5679"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="107" x="683.5" y="329.5339">statemachine-1</text></g><!--MD5=[e29557091b3e46407a475b5ca670bf6d]
+cluster Telegraft--><g id="cluster_Telegraft"><rect fill="none" height="128" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="174" x="672.75" y="364.5679"/><rect fill="none" height="10" style="stroke:#181818;stroke-width:1.0;" width="15" x="826.75" y="369.5679"/><rect fill="none" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="824.75" y="371.5679"/><rect fill="none" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="824.75" y="375.5679"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="164" x="677.75" y="392.5339">telegraft-state-machine</text></g><!--MD5=[3cda7d5498961e5e614ca2d2ed3c2f94]
+cluster raft-2--><g id="cluster_raft-2"><rect fill="none" height="196" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="224" x="367" y="312.5679"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="38" x="460" y="329.5339">raft-2</text></g><!--MD5=[e3b72d301b965cbca9f58de8a3361392]
+cluster r--><g id="cluster_r"><rect fill="none" height="128" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="192" x="383" y="364.5679"/><rect fill="none" height="10" style="stroke:#181818;stroke-width:1.0;" width="15" x="555" y="369.5679"/><rect fill="none" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="553" y="371.5679"/><rect fill="none" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="553" y="375.5679"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="143" x="407.5" y="392.5339">telegraft-raft-service</text></g><!--MD5=[3420abfdf543b0e8dbf0de3ea46ff80a]
+cluster statemachine-2--><g id="cluster_statemachine-2"><rect fill="none" height="218" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="244" x="883" y="189.5679"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="107" x="951.5" y="206.5339">statemachine-2</text></g><!--MD5=[726bf5ae9c58ccf600049f91f38a1f22]
+cluster t--><g id="cluster_t"><rect fill="none" height="150" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="174" x="940.75" y="241.5679"/><rect fill="none" height="10" style="stroke:#181818;stroke-width:1.0;" width="15" x="1094.75" y="246.5679"/><rect fill="none" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="1092.75" y="248.5679"/><rect fill="none" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="1092.75" y="252.5679"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="164" x="945.75" y="269.5339">telegraft-state-machine</text></g><!--MD5=[75abd8685a7d50ed98507c2e4be478ed]
+cluster raft3--><g id="cluster_raft3"><rect fill="none" height="128" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="67.5" x="17" y="364.5679"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="38" x="31.75" y="381.5339">raft-3</text></g><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="32" x="266" y="219.4659">8350</text><rect fill="#F1F1F1" height="12" style="stroke:#181818;stroke-width:1.5;" width="12" x="276" y="235.5679"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="32" x="675" y="342.4659">8301</text><rect fill="#F1F1F1" height="12" style="stroke:#181818;stroke-width:1.5;" width="12" x="685" y="358.5679"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="32" x="463" y="342.4659">8350</text><rect fill="#F1F1F1" height="12" style="stroke:#181818;stroke-width:1.5;" width="12" x="473" y="358.5679"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="32" x="943" y="219.4659">8301</text><rect fill="#F1F1F1" height="12" style="stroke:#181818;stroke-width:1.5;" width="12" x="953" y="235.5679"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="73" x="30" y="342.4659">raft-3:8350</text><rect fill="#F1F1F1" height="12" style="stroke:#181818;stroke-width:1.5;" width="12" x="60.5" y="358.5679"/><!--MD5=[0ba5ee7700168656dc1b457c6fe9fdac]
+entity Client--><g id="elem_Client"><ellipse cx="282" cy="54.0679" fill="#F1F1F1" rx="8" ry="8" style="stroke:#181818;stroke-width:0.5;"/><path d="M282,62.0679 L282,89.0679 M269,70.0679 L295,70.0679 M282,89.0679 L269,104.0679 M282,89.0679 L295,104.0679 " fill="none" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="39" x="262.5" y="120.5339">Client</text></g><g id="elem_GMN3"><path d="M336.5,71.0679 L336.5,98.7739 L475.5,98.7739 L475.5,81.0679 L465.5,71.0679 L336.5,71.0679 " fill="#FEFFDD" style="stroke:#181818;stroke-width:0.5;"/><path d="M465.5,71.0679 L465.5,81.0679 L475.5,81.0679 L465.5,71.0679 " fill="#FEFFDD" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="118" x="342.5" y="89.9649">E.g. a user interface.</text></g><!--MD5=[2fbb1a91b2a32a8a266b8da5e4ea3848]
+link Client to GMN3--><g id="link_Client_GMN3"><path d="M301.86,85.0679 C313.25,85.0679 324.64,85.0679 336.03,85.0679 " fill="none" id="Client-GMN3" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[955e395664640f342850d66fa06547cc]
+link sm2port to raft2port--><g id="link_sm2port_raft2port"><path d="M952.67,243.7279 C906.82,252.1179 627.18,303.3379 623,304.5679 C568.05,320.7079 505.36,350.5779 485.43,360.3679 " fill="none" id="sm2port-raft2port" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[edee3dbf772ac0637aa3dfc1d049abb4]
+link Client to raft1port--><g id="link_Client_raft1port"><path d="M262.13,97.2279 C243.68,108.8379 217.41,128.9279 206,154.5679 C188.5,193.8879 254.64,228.0779 275.73,237.8079 " fill="none" id="Client-raft1port" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#000000" points="211.4815,169.3977,213.5358,160.1116,207.6852,160.6776,211.4815,169.3977" style="stroke:#000000;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="91" x="220" y="169.4649">ClientRequest()</text></g><!--MD5=[edee3dbf772ac0637aa3dfc1d049abb4]
+link Client to raft1port--><g id="link_Client_raft1port"><path d="M301.96,113.4279 C311.95,130.3779 320.97,152.8079 316,173.5679 C310.05,198.4279 293.28,224.4979 285.75,235.3479 " fill="none" id="Client-raft1port-1" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#000000" points="321.341,169.3773,325.4464,160.7985,319.6198,160.0238,321.341,169.3773" style="stroke:#000000;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="79" x="331" y="169.4649">ClientQuery()</text></g><!--MD5=[db291a6fe2bede267d887366e5f18e9b]
+link raft1port to sm1port--><g id="link_raft1port_sm1port"><path d="M288.38,243.0579 C320.82,245.7179 470.39,259.9779 583,304.5679 C623.92,320.7679 668.92,349.0979 684.93,359.5479 " fill="none" id="raft1port-sm1port" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#000000" points="568.7973,288.8302,560.9472,283.461,559.2906,289.1006,568.7973,288.8302" style="stroke:#000000;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="83" x="573" y="292.4649">Apply request</text></g><!--MD5=[c348ae001d13d71391a0a0f7263bd662]
+link raft1port to raft2port--><g id="link_raft1port_raft2port"><path d="M288.11,246.3179 C317.34,264.2679 442.65,341.2379 472.57,359.6179 " fill="none" id="raft1port-raft2port" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#000000" points="377.2605,290.0378,371.0914,282.7995,368.015,287.8081,377.2605,290.0378" style="stroke:#000000;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="88" x="382" y="292.4649">AppendEntries</text></g><!--MD5=[a5ecd4cc7575b657bb283b4e25c0896f]
+link raft1port to raft3port--><g id="link_raft1port_raft3port"><path d="M275.66,242.9879 C255.56,244.5579 192.05,251.4379 148,277.5679 C110.6,299.7479 79.6,344.1679 70.04,358.7879 " fill="none" id="raft1port-raft3port" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#000000" points="148.6434,289.8745,157.9667,287.9967,155.0824,282.8752,148.6434,289.8745" style="stroke:#000000;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="88" x="162" y="292.4649">AppendEntries</text></g><!--MD5=[a26027a2d78b677eb33865c46da8714a]
+@startuml sendGetMessage
+
+mainframe **cd** SendGetMessage
+
+skinparam style strictuml
+skinparam sequenceMessageAlign direction
+
+actor Client
+  note right of Client {
+    E.g. a user interface.
+  }
+
+rectangle raft-1 {
+
+  component "telegraft-raft-service" as Raft {
+    port 8350 as raft1port
+  }
+}
+rectangle statemachine-1 {
+  component "telegraft-state-machine" as Telegraft {
+    port 8301 as sm1port
+  }
+}
+
+
+rectangle raft-2 {
+  component "telegraft-raft-service" as r {
+    port 8350 as raft2port
+  }
+}
+rectangle statemachine-2 {
+  component "telegraft-state-machine" as t {
+    port 8301 as sm2port
+  }
+}
+
+sm2port - - raft2port
+
+Client - - raft1port: ClientRequest() >
+
+Client - - raft1port: ClientQuery() >
+
+raft1port - - sm1port: Apply request >
+raft1port - - raft2port: AppendEntries >
+
+rectangle "raft-3" as raft3 {
+  port "raft-3:8350" as raft3port
+}
+raft1port - - raft3port: AppendEntries >
+
+@enduml
+
+PlantUML version 1.2022.12(Sun Oct 23 20:12:26 CEST 2022)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: it
+Country: IT
+--></g></svg>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="222px" preserveAspectRatio="none" style="width:576px;height:222px;background:#FFFFFF;" version="1.1" viewBox="0 0 576 222" width="576px" zoomAndPan="magnify"><defs/><g><g id="elem_Command"><rect fill="#CDF5F6" height="208.1284" rx="5" ry="5" style="stroke:#181818;stroke-width:0.5;" width="232" x="7" y="7.188"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="79" x="83.5" y="26.292">Command</text><line style="stroke:#181818;stroke-width:0.5;" x1="8" x2="238" y1="32.9801" y2="32.9801"/><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="15" y="46.3761"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="165" x="27" y="54.0841">ApplyToStateMachine</text><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="15" y="68.1681"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="112" x="27" y="75.8761">AppendEntries</text><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="15" y="89.9602"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="97" x="27" y="97.6682">RequestVote</text><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="15" y="111.7522"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="105" x="27" y="119.4602">ClientRequest</text><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="15" y="133.5442"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="206" x="27" y="141.2523">WrappedResponseToClient</text><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="15" y="155.3363"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="123" x="27" y="163.0443">ElectionTimeout</text><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="15" y="177.1283"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="186" x="27" y="184.8363">AppendEntriesResponse</text><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="15" y="198.9204"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="171" x="27" y="206.6284">RequestVoteResponse</text></g><g id="elem_Event"><rect fill="#EFF9DA" height="208.1284" rx="5" ry="5" style="stroke:#181818;stroke-width:0.5;" width="254" x="315" y="7.188"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="42" x="421" y="26.292">Event</text><line style="stroke:#181818;stroke-width:0.5;" x1="316" x2="568" y1="32.9801" y2="32.9801"/><polygon fill="none" points="326,45.3761,322,51.3761,330,51.3761" style="stroke:#1963A0;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="180" x="335" y="54.0841">AppliedToStateMachine</text><polygon fill="none" points="326,67.1681,322,73.1681,330,73.1681" style="stroke:#1963A0;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="131" x="335" y="75.8761">EntriesAppended</text><polygon fill="none" points="326,88.9602,322,94.9602,330,94.9602" style="stroke:#1963A0;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="113" x="335" y="97.6682">VoteExpressed</text><polygon fill="none" points="326,110.7522,322,116.7522,330,116.7522" style="stroke:#1963A0;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="147" x="335" y="119.4602">ClientRequestEvent</text><polygon fill="none" points="326,132.5442,322,138.5442,330,138.5442" style="stroke:#1963A0;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="138" x="335" y="141.2523">AnsweredToClient</text><polygon fill="none" points="326,154.3363,322,160.3363,330,160.3363" style="stroke:#1963A0;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="182" x="335" y="163.0443">ElectionTimeoutElapsed</text><polygon fill="none" points="326,176.1283,322,182.1283,330,182.1283" style="stroke:#1963A0;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="228" x="335" y="184.8363">AppendEntriesResponseEvent</text><polygon fill="none" points="326,197.9204,322,203.9204,330,203.9204" style="stroke:#1963A0;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="16" lengthAdjust="spacing" textLength="213" x="335" y="206.6284">RequestVoteResponseEvent</text></g><!--MD5=[7231ce5f5bca3eb4ed72d851207c5127]
+link Command to Event--><g id="link_Command_Event"><path codeLine="33" d="M240,46.688 C270.7,46.688 279.91,46.688 307.76,46.688 " fill="none" id="Command-to-Event" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="312.49,46.688,303.49,42.688,307.49,46.688,303.49,50.688,312.49,46.688" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[7231ce5f5bca3eb4ed72d851207c5127]
+link Command to Event--><g id="link_Command_Event"><path codeLine="34" d="M240,67.688 C270.7,67.688 279.91,67.688 307.76,67.688 " fill="none" id="Command-to-Event-1" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="312.49,67.688,303.49,63.688,307.49,67.688,303.49,71.688,312.49,67.688" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[7231ce5f5bca3eb4ed72d851207c5127]
+link Command to Event--><g id="link_Command_Event"><path codeLine="35" d="M240,88.688 C270.7,88.688 279.91,88.688 307.76,88.688 " fill="none" id="Command-to-Event-2" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="312.49,88.688,303.49,84.688,307.49,88.688,303.49,92.688,312.49,88.688" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[7231ce5f5bca3eb4ed72d851207c5127]
+link Command to Event--><g id="link_Command_Event"><path codeLine="36" d="M240,110.688 C270.7,110.688 279.91,110.688 307.76,110.688 " fill="none" id="Command-to-Event-3" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="312.49,110.688,303.49,106.688,307.49,110.688,303.49,114.688,312.49,110.688" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[7231ce5f5bca3eb4ed72d851207c5127]
+link Command to Event--><g id="link_Command_Event"><path codeLine="37" d="M240,131.688 C270.7,131.688 279.91,131.688 307.76,131.688 " fill="none" id="Command-to-Event-4" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="312.49,131.688,303.49,127.688,307.49,131.688,303.49,135.688,312.49,131.688" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[7231ce5f5bca3eb4ed72d851207c5127]
+link Command to Event--><g id="link_Command_Event"><path codeLine="38" d="M240,152.688 C270.7,152.688 279.91,152.688 307.76,152.688 " fill="none" id="Command-to-Event-5" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="312.49,152.688,303.49,148.688,307.49,152.688,303.49,156.688,312.49,152.688" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[7231ce5f5bca3eb4ed72d851207c5127]
+link Command to Event--><g id="link_Command_Event"><path codeLine="39" d="M240,173.688 C270.7,173.688 279.91,173.688 307.76,173.688 " fill="none" id="Command-to-Event-6" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="312.49,173.688,303.49,169.688,307.49,173.688,303.49,177.688,312.49,173.688" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[7231ce5f5bca3eb4ed72d851207c5127]
+link Command to Event--><g id="link_Command_Event"><path codeLine="40" d="M240,194.688 C270.7,194.688 279.91,194.688 307.76,194.688 " fill="none" id="Command-to-Event-7" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="312.49,194.688,303.49,190.688,307.49,194.688,303.49,198.688,312.49,194.688" style="stroke:#181818;stroke-width:1.0;"/></g><!--MD5=[eda286af2018a8771ad1a08131cb4db5]
+@startuml
+
+skinparam roundCorner 10
+left to right direction
+skinparam defaultFontSize 16
+
+object Command #CDF5F6 {
+
+- ApplyToStateMachine
+- AppendEntries
+- RequestVote
+- ClientRequest
+- WrappedResponseToClient
+- ElectionTimeout
+- AppendEntriesResponse
+- RequestVoteResponse
+
+}
+
+object Event #EFF9DA {
+
+~ AppliedToStateMachine
+~ EntriesAppended
+~ VoteExpressed
+~ ClientRequestEvent
+~ AnsweredToClient
+~ ElectionTimeoutElapsed
+~ AppendEntriesResponseEvent
+~ RequestVoteResponseEvent
+}
+
+
+
+Command::ApplyToStateMachine - -> Event::AppliedToStateMachine
+Command::AppendEntries - -> Event::EntriesAppended
+Command::RequestVote - -> Event::VoteExpressed
+Command::ClientRequest - -> Event::ClientRequestEvent
+Command::WrappedResponseToClient - -> Event::AnsweredToClient
+Command::ElectionTimeout - -> Event::ElectionTimeoutElapsed
+Command::AppendEntriesResponse - -> Event::AppendEntriesResponseEvent
+Command::RequestVoteResponse - -> Event::RequestVoteResponseEvent
+
+
+@enduml
+
+PlantUML version 1.2022.12(Sun Oct 23 20:12:26 CEST 2022)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: it
+Country: IT
+--></g></svg>

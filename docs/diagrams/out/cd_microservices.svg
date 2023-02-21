@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="595px" preserveAspectRatio="none" style="width:620px;height:595px;background:#FFFFFF;" version="1.1" viewBox="0 0 620 595" width="620px" zoomAndPan="magnify"><defs/><g><!--MD5=[e29557091b3e46407a475b5ca670bf6d]
+cluster Telegraft--><g id="cluster_Telegraft"><rect fill="none" height="489" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="278" x="144.4" y="100"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="62" x="252.4" y="116.9659">Telegraft</text></g><!--MD5=[e3b72d301b965cbca9f58de8a3361392]
+cluster r--><g id="cluster_r"><rect fill="#90EE90" height="117" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="153" x="209.4" y="456"/><rect fill="#90EE90" height="10" style="stroke:#181818;stroke-width:1.0;" width="15" x="342.4" y="461"/><rect fill="#90EE90" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="340.4" y="463"/><rect fill="#90EE90" height="2" style="stroke:#181818;stroke-width:1.0;" width="4" x="340.4" y="467"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="143" x="214.4" y="483.9659">telegraft-raft-service</text></g><g id="cluster_##7"><rect fill="none" height="205" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="72" x="446.4" y="131.5"/></g><g id="cluster_##16"><rect fill="none" height="186.5" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:1.0;" width="72" x="542.4" y="7"/></g><!--MD5=[31b50539c062e48f418cd0b43b66a14f]
+entity sm--><g id="elem_sm"><rect fill="#FFB6C1" height="49.0679" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="246" x="160.4" y="138"/><rect fill="#FFB6C1" height="10" style="stroke:#181818;stroke-width:0.5;" width="15" x="386.4" y="143"/><rect fill="#FFB6C1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="384.4" y="145"/><rect fill="#FFB6C1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="384.4" y="149"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="206" x="175.4" y="172.9659">telegraft-statemachine-service</text></g><!--MD5=[c807758c2e9e0d1754c3d4b69a0f6713]
+entity i--><g id="elem_i"><ellipse cx="293.4" cy="305.5" fill="#F1F1F1" rx="8" ry="8" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="193" x="196.9" y="337.4659">gRPC state machine protocol</text></g><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="67" x="273.9" y="433.898">gRPC port</text><rect fill="#F1F1F1" height="12" style="stroke:#181818;stroke-width:1.5;" width="12" x="301.4" y="450"/><!--MD5=[b165ca7cce796f881c879adda4a6bef9]
+entity s3--><g id="elem_s3"><rect fill="#FFB6C1" height="30" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="40" x="462.4" y="147.5"/><rect fill="#FFB6C1" height="10" style="stroke:#181818;stroke-width:0.5;" width="15" x="482.4" y="152.5"/><rect fill="#FFB6C1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="480.4" y="154.5"/><rect fill="#FFB6C1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="480.4" y="158.5"/></g><!--MD5=[d236c9e80d6be685e6fcea00aa55c743]
+entity r3--><g id="elem_r3"><rect fill="#90EE90" height="30" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="40" x="462.4" y="290.5"/><rect fill="#90EE90" height="10" style="stroke:#181818;stroke-width:0.5;" width="15" x="482.4" y="295.5"/><rect fill="#90EE90" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="480.4" y="297.5"/><rect fill="#90EE90" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="480.4" y="301.5"/></g><!--MD5=[dc66687c89eac77dba91b7320324a287]
+entity s2--><g id="elem_s2"><rect fill="#FFB6C1" height="30" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="40" x="558.4" y="23"/><rect fill="#FFB6C1" height="10" style="stroke:#181818;stroke-width:0.5;" width="15" x="578.4" y="28"/><rect fill="#FFB6C1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="576.4" y="30"/><rect fill="#FFB6C1" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="576.4" y="34"/></g><!--MD5=[2d034b0875f5e28a2e66ba2265252e77]
+entity r2--><g id="elem_r2"><rect fill="#90EE90" height="30" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="40" x="558.4" y="147.5"/><rect fill="#90EE90" height="10" style="stroke:#181818;stroke-width:0.5;" width="15" x="578.4" y="152.5"/><rect fill="#90EE90" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="576.4" y="154.5"/><rect fill="#90EE90" height="2" style="stroke:#181818;stroke-width:0.5;" width="4" x="576.4" y="158.5"/></g><!--MD5=[0ba5ee7700168656dc1b457c6fe9fdac]
+entity Client--><g id="elem_Client"><ellipse cx="108.4" cy="274.5" fill="#F1F1F1" rx="8" ry="8" style="stroke:#181818;stroke-width:0.5;"/><path d="M108.4,282.5 L108.4,309.5 M95.4,290.5 L121.4,290.5 M108.4,309.5 L95.4,324.5 M108.4,309.5 L121.4,324.5 " fill="none" style="stroke:#181818;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="39" x="88.9" y="340.9659">Client</text></g><!--MD5=[25989e798f4a6a68c7838e2185a992bd]
+link s3 to r3--><g id="link_s3_r3"><path d="M482.4,177.8 C482.4,204.82 482.4,263.11 482.4,290.17 " fill="none" id="s3-r3" style="stroke:#181818;stroke-width:1.0;"/><path d="M475.3289,241.0411 A10,10 0 0 0 489.4711 241.0411" fill="none" style="stroke:#181818;stroke-width:1.5;"/><ellipse cx="482.4" cy="233.97" fill="#FFFFFF" rx="6" ry="6" style="stroke:#181818;stroke-width:1.5;"/></g><!--MD5=[a83eff69aacdc306b20534ce38296f17]
+link Client to grpcServer--><g id="link_Client_grpcServer"><path d="M88.54,318.1 C58.08,337.3 6,376.7 32.4,408 C68.63,450.95 265.05,454.65 301.56,454.97 " fill="none" id="Client-grpcServer" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#000000" points="48.6065,394.5558,42.5855,387.1939,39.4082,392.1389,48.6065,394.5558" style="stroke:#000000;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="83" x="53.4" y="396.897">Client request</text><path d="M160.6105,439.6766 A10,10 0 0 0 159.0804 453.7358" fill="none" style="stroke:#181818;stroke-width:1.5;"/><ellipse cx="166.875" cy="447.4712" fill="#FFFFFF" rx="6" ry="6" style="stroke:#181818;stroke-width:1.5;"/></g><!--MD5=[9dc73ccee4f45b5d64aead00606e5adc]
+reverse link sm to i--><g id="link_sm_i"><path d="M285.55,193.75 C287.88,226.66 291.46,277.17 292.84,296.55 " fill="none" id="sm-backto-i" style="stroke:#181818;stroke-width:1.0;"/><rect fill="#FFFFFF" height="10" style="stroke:#181818;stroke-width:1.5;" width="10" x="280.21" y="183.93"/><polygon fill="#000000" points="293.7537,231.8405,296.0454,222.6102,290.1823,223.0259,293.7537,231.8405" style="stroke:#000000;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="92" x="302.4" y="231.897">Client response</text></g><!--MD5=[7627a23d3958e7075faf2fd4832ded82]
+reverse link i to grpcServer--><g id="link_i_grpcServer"><path d="M295.22,325.8 C298.49,360.42 305.16,431.24 306.95,450.23 " fill="none" id="i-backto-grpcServer" style="stroke:#181818;stroke-width:1.0;"/><path d="M286.1706,319.8517 A9,9 0 0 0 303.0098 318.2572" fill="none" style="stroke:#181818;stroke-width:1.5;"/><polygon fill="#000000" points="306.9307,386.8751,304.8537,396.1561,310.7056,395.6044,306.9307,386.8751" style="stroke:#000000;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="83" x="316.4" y="396.897">Client request</text></g><!--MD5=[e9949b4e4f144f9cb0ad65026c9789b6]
+link s2 to r2--><g id="link_s2_r2"><path d="M578.4,53.05 C578.4,76.56 578.4,123.59 578.4,147.23 " fill="none" id="s2-r2" style="stroke:#181818;stroke-width:1.0;"/><path d="M571.3289,107.1623 A10,10 0 0 0 585.4711 107.1623" fill="none" style="stroke:#181818;stroke-width:1.5;"/><ellipse cx="578.4" cy="100.0912" fill="#FFFFFF" rx="6" ry="6" style="stroke:#181818;stroke-width:1.5;"/></g><!--MD5=[64c586d087a836482fde201e05429c4b]
+link r2 to grpcServer--><g id="link_r2_grpcServer"><path d="M576.69,177.95 C570.59,221.94 545.62,354.52 461.4,408 C409.96,440.67 334.46,451.78 313.17,454.36 " fill="none" id="r2-grpcServer" style="stroke:#181818;stroke-width:1.0;"/><ellipse cx="461.4" cy="408" fill="#FFFFFF" rx="10" ry="10" style="stroke:#FFFFFF;stroke-width:1.0;"/><path d="M451.6402,405.8212 A10,10 0 0 0 459.2212 417.7598" fill="none" style="stroke:#181818;stroke-width:1.5;"/><path d="M471.1598,410.1788 A10,10 0 0 0 463.5788 398.2402" fill="none" style="stroke:#181818;stroke-width:1.5;"/><ellipse cx="461.4" cy="408" fill="#FFFFFF" rx="6" ry="6" style="stroke:#181818;stroke-width:1.5;"/></g><!--MD5=[ec2c824309449e6d2e607a53e6e73bfc]
+link r3 to grpcServer--><g id="link_r3_grpcServer"><path d="M477.33,320.94 C469.03,342.62 450.6,383.65 422.4,408 C387.8,437.89 331.64,450.51 313.36,453.96 " fill="none" id="r3-grpcServer" style="stroke:#181818;stroke-width:1.0;"/><ellipse cx="422.4" cy="408" fill="#FFFFFF" rx="10" ry="10" style="stroke:#FFFFFF;stroke-width:1.0;"/><path d="M412.4267,407.2693 A10,10 0 0 0 421.6693 417.9733" fill="none" style="stroke:#181818;stroke-width:1.5;"/><path d="M432.3733,408.7307 A10,10 0 0 0 423.1307 398.0267" fill="none" style="stroke:#181818;stroke-width:1.5;"/><ellipse cx="422.4" cy="408" fill="#FFFFFF" rx="6" ry="6" style="stroke:#181818;stroke-width:1.5;"/></g><!--MD5=[b3e0b32f96a3d0e580265317c6c20e04]
+link r2 to r3--><g id="link_r2_r3"><path d="M567.95,177.94 C560.25,188.66 549.56,203.66 540.4,217 C522.87,242.55 503.05,272.75 491.71,290.16 " fill="none" id="r2-r3" style="stroke:#181818;stroke-width:1.0;"/><ellipse cx="540.4" cy="217" fill="#FFFFFF" rx="10" ry="10" style="stroke:#FFFFFF;stroke-width:1.0;"/><path d="M530.5682,218.8265 A10,10 0 0 0 542.2265 226.8318" fill="none" style="stroke:#181818;stroke-width:1.5;"/><path d="M550.2318,215.1735 A10,10 0 0 0 538.5735 207.1682" fill="none" style="stroke:#181818;stroke-width:1.5;"/><ellipse cx="540.4" cy="217" fill="#FFFFFF" rx="6" ry="6" style="stroke:#181818;stroke-width:1.5;"/></g><!--MD5=[a62f7481d0ec44dde71e0086dc70f4ca]
+@startuml
+
+rectangle Telegraft {
+
+component [telegraft-statemachine-service] as sm #LightPink
+component "telegraft-raft-service" as r #LightGreen {
+  port "gRPC port" as grpcServer
+}
+
+interface "gRPC state machine protocol" as i
+
+}
+
+rectangle {
+  [ ] as s3 #LightPink
+  [ ] as r3 #LightGreen
+  s3 -0)- r3
+}
+
+actor Client
+
+
+
+
+
+Client -(0- grpcServer: Client request >
+
+sm #- - i : Client response >
+i )- - grpcServer: Client request <
+
+rectangle {
+  [ ] as s2 #LightPink
+  [ ] as r2 #LightGreen
+  s2 -0)- r2
+}
+
+r2 -(0)- grpcServer
+
+r3 -(0)- grpcServer
+r2 -(0)- r3
+
+@enduml
+
+PlantUML version 1.2022.12(Sun Oct 23 20:12:26 CEST 2022)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: it
+Country: IT
+--></g></svg>
